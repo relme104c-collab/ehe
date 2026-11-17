@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SoalKit Portable</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#e8eaed;color:#222;font-size:14px}
+button{font-family:inherit}
+
+.topbar{display:flex;align-items:center;gap:10px;background:#1a3c6e;color:#fff;padding:7px 12px;position:sticky;top:0;z-index:20;flex-wrap:wrap;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.logo{font-weight:700;font-size:15px;white-space:nowrap}
+.logo small{display:block;font-weight:400;font-size:10px;opacity:.8}
+.tabs{display:flex;gap:2px}
+.tabbtn{padding:8px 18px;border:0;background:rgba(255,255,255,.14);color:#fff;cursor:pointer;border-radius:6px 6px 0 0;font-size:13px}
+.tabbtn.active{background:#e8eaed;color:#1a3c6e;font-weight:600}
+.bar-actions{margin-left:auto;display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.btn{padding:6px 12px;border:1px solid #b7bcc2;background:#fff;border-radius:5px;cursor:pointer;font-size:12.5px;color:#222}
+.btn:hover{background:#f0f3f7}
+.btn.primary{background:#1a73e8;border-color:#1a73e8;color:#fff;font-weight:600}
+.btn.primary:hover{background:#1662c4}
+.btn.mini{padding:3px 8px;font-size:11.5px}
+.zoomctl{display:flex;align-items:center;gap:3px;background:rgba(255,255,255,.12);border-radius:5px;padding:2px}
+.zoomctl button{background:transparent;border:0;color:#fff;cursor:pointer;font-size:14px;padding:2px 7px}
+.zoomctl span{font-size:11px;min-width:34px;text-align:center}
+.status{font-size:10.5px;opacity:.85;width:100%;padding:0 2px}
+.status b.ok{color:#8ff08f}.status b.no{color:#ffb0a0}
+
+main{padding:10px}
+.tabpane{display:none}
+.tabpane.active{display:flex;gap:10px;align-items:flex-start}
+.editor{width:430px;flex:0 0 430px;background:#fff;border-radius:8px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.18);max-height:calc(100vh - 100px);overflow:auto}
+.previewwrap{flex:1;min-width:0;overflow:auto;background:#c4c9d0;border-radius:8px;padding:14px;max-height:calc(100vh - 100px)}
+
+.field{margin-bottom:9px}
+.field label{display:block;font-size:11.5px;color:#555;margin-bottom:3px;font-weight:600}
+.field input[type=text],.field input[type=number],.field input[type=date],.field select,.field textarea{width:100%;padding:6px 8px;border:1px solid #c5cad1;border-radius:4px;font:inherit;font-size:13px;background:#fff}
+.field textarea{resize:vertical;line-height:1.4}
+.row2{display:flex;gap:8px}.row2>.field{flex:1;min-width:0}
+.checks{display:flex;gap:14px;flex-wrap:wrap;margin:6px 0 10px;font-size:12.5px}
+.checks label{display:flex;align-items:center;gap:5px;cursor:pointer}
+.qbar{display:flex;justify-content:space-between;align-items:center;margin:12px 0 6px;padding-top:10px;border-top:2px solid #e3e6ea}
+.qbar b{font-size:13px;color:#1a3c6e}
+.qcard{border:1px solid #d9dde3;border-radius:6px;padding:8px;margin-bottom:8px;background:#fafbfc}
+.qcard:focus-within{border-color:#1a73e8;background:#fff}
+.qhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.qhead b{font-size:12px;color:#1a3c6e}
+.qhead .acts button{margin-left:3px}
+.f-q,.f-opt{width:100%;padding:5px 7px;border:1px solid #c5cad1;border-radius:4px;font:inherit;font-size:12.5px;resize:vertical}
+.f-q{margin-bottom:6px}
+.optline{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.optline .abc{font-weight:700;font-size:12px;width:14px;color:#444}
+.optline input[type=radio]{cursor:pointer}
+.optline .f-opt{flex:1}
+.hintline{font-size:11px;color:#888;margin:2px 0 10px}
+.filelabel{display:inline-block;padding:6px 12px;border:1px solid #b7bcc2;background:#fff;border-radius:5px;cursor:pointer;font-size:12.5px}
+.koprev{margin-top:8px;border:1px dashed #bbb;border-radius:6px;padding:6px;text-align:center;background:#fafbfc}
+.koprev img{max-width:100%;max-height:110px}
+.koprev .none{color:#999;font-size:12px;padding:14px 0}
+
+#measurer{position:absolute;left:-99999px;top:0;visibility:hidden}
+.page-slot{margin:0 auto 16px;position:relative}
+.page{width:210mm;height:297mm;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.4);font-family:'Times New Roman',Times,serif;font-size:11pt;line-height:1.45;color:#000;overflow:hidden;transform-origin:top left;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.blk{padding-bottom:8pt}
+.blk.force{padding-bottom:0}
+
+.kop-img{width:100%;max-height:3.5cm;object-fit:contain;display:block;margin:0 auto 6pt}
+.kop-text{text-align:center}
+.kop-nama{font-weight:bold;font-size:14pt;text-transform:uppercase;letter-spacing:.5pt}
+.kop-alamat{font-size:9pt;line-height:1.3}
+.kop-line{border-bottom:3pt double #000;margin-top:3pt}
+.doc-title{text-align:center;font-weight:bold;font-size:12pt;text-decoration:underline;margin-top:8pt;letter-spacing:.5pt}
+.doc-sub{text-align:center;font-size:10.5pt;margin-top:2pt}
+table.ident{border-collapse:collapse;margin-top:8pt;font-size:11pt}
+table.ident td{padding:1pt 8pt 1pt 0;vertical-align:top}
+.petunjuk{margin-top:7pt;font-size:10.5pt;text-align:justify}
+.q-text{text-align:justify;display:block}
+.q-text b{padding-right:2pt}
+table.opts{width:100%;border-collapse:collapse;margin-top:1pt}
+table.opts td{width:50%;vertical-align:top;padding:1pt 8pt 1pt 0}
+
+.ans-title{text-align:center;font-weight:bold;font-size:12pt;text-decoration:underline;letter-spacing:1pt;margin-bottom:8pt}
+.ans-hint{font-size:9.5pt;font-style:italic;margin-bottom:8pt}
+.ans-grid{-webkit-column-gap:16pt;column-gap:16pt;margin-top:4pt}
+.ans-row{-webkit-column-break-inside:avoid;break-inside:avoid;margin-bottom:5pt;white-space:nowrap}
+.ans-num{display:inline-block;width:17pt;font-size:9.5pt;vertical-align:middle}
+.circ{display:inline-block;width:12.5pt;height:12.5pt;border:1.1pt solid #000;border-radius:50%;text-align:center;font-size:8pt;line-height:11.5pt;margin:0 2.5pt;font-family:Arial,sans-serif;vertical-align:middle;user-select:none}
+.kunci-grid{margin-top:4pt}
+.k-item{display:inline-block;width:100%;padding-bottom:3pt;font-size:10.5pt}
+.k-note{margin-top:12pt;font-size:10pt;font-style:italic}
+
+.surat-meta{width:100%;border-collapse:collapse}
+.surat-meta td{vertical-align:top;padding:0 0 2pt}
+.surat-meta .right{text-align:right;white-space:nowrap}
+.meta-line td{padding:0 10pt 2pt 0}
+.meta-line .lbl{white-space:nowrap}
+.tujuan{margin-top:10pt}
+.tujuan .ujab{font-weight:bold}
+.salam{margin-top:10pt}
+.para{text-align:justify;text-indent:1.2cm}
+.para-list{margin:2pt 0 2pt 1.2cm;padding:0}
+.para-list li{margin-bottom:1pt}
+table.ttd{width:100%;border-collapse:collapse;margin-top:10pt}
+table.ttd td{vertical-align:top}
+.ttd-right{width:46%;text-align:left}
+.ttd-name{text-decoration:underline;font-weight:bold;margin-top:2pt}
+.tembusan{margin-top:14pt;font-size:10pt}
+.tembusan ol{margin:2pt 0 0 16pt;padding:0}
+
+#printMount{display:none}
+@media print{
+  body{background:#fff}
+  body > *{display:none !important}
+  #printMount{display:block !important}
+  #printMount .page{transform:none !important;box-shadow:none;margin:0;break-after:page;page-break-after:always}
+  #printMount .page:last-child{break-after:auto;page-break-after:auto}
+  @page{size:A4;margin:0}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">SoalKit <small>Portable Edition</small></div>
+  <div class="tabs">
+    <button class="tabbtn active" data-tab="soal">Soal</button>
+    <button class="tabbtn" data-tab="surat">Surat</button>
+    <button class="tabbtn" data-tab="pengaturan">Pengaturan</button>
+  </div>
+  <div class="bar-actions">
+    <button class="btn primary" id="btnPrint">Cetak / PDF</button>
+    <button class="btn" id="btnEksporData">Ekspor Data</button>
+    <button class="btn" id="btnEksporConfig">Ekspor Config</button>
+    <button class="btn" id="btnImpor">Impor</button>
+    <input type="file" id="fileImpor" accept=".js,.json" style="display:none">
+    <div class="zoomctl">
+      <button id="btnZoomOut" title="Perkecil">−</button>
+      <span id="zoomLabel">80%</span>
+      <button id="btnZoomIn" title="Perbesar">+</button>
+    </div>
+  </div>
+  <div class="status" id="statusLine"></div>
+</div>
+
+<main>
+  <section class="tabpane active" id="pane-soal">
+    <div class="editor">
+      <div class="field"><label>Judul Naskah</label><input type="text" id="so-judul"></div>
+      <div class="row2">
+        <div class="field"><label>Mata Pelajaran</label><input type="text" id="so-mapel"></div>
+        <div class="field"><label>Kelas</label>
+          <select id="so-kelas">
+            <option value="7">Kelas 7 / VII</option>
+            <option value="8">Kelas 8 / VIII</option>
+            <option value="9">Kelas 9 / IX</option>
+          </select>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Waktu (menit)</label><input type="number" id="so-waktu" min="5" max="300"></div>
+        <div class="field"><label>Guru / Pembuat</label><input type="text" id="so-guru"></div>
+      </div>
+      <div class="field"><label>Petunjuk Pengerjaan</label><textarea id="so-petunjuk" rows="2"></textarea></div>
+      <div class="checks">
+        <label><input type="checkbox" id="so-kop"> Kop surat</label>
+        <label><input type="checkbox" id="so-lj"> Lembar jawaban</label>
+        <label><input type="checkbox" id="so-kunci"> Kunci (guru)</label>
+      </div>
+      <div class="qbar"><b>Daftar Soal (Pilihan Ganda A–D)</b>
+        <span><button class="btn mini" id="btnAcak">Acak Urutan</button> <button class="btn mini primary" id="btnAddQ">+ Soal</button></span>
+      </div>
+      <div class="hintline">Tandai salah satu pilihan sebagai kunci jawaban bila halaman kunci ingin dicetak.</div>
+      <div id="qList"></div>
+    </div>
+    <div class="previewwrap"><div id="pagesSoal"></div></div>
+  </section>
+
+  <section class="tabpane" id="pane-surat">
+    <div class="editor">
+      <div class="checks"><label><input type="checkbox" id="su-kop"> Gunakan kop surat</label></div>
+      <div class="row2">
+        <div class="field"><label>Nomor Surat</label><input type="text" id="su-nomor"></div>
+        <div class="field"><label>Lampiran</label><input type="text" id="su-lampiran"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Hal</label><input type="text" id="su-hal"></div>
+        <div class="field"><label>Tanggal Surat</label><input type="date" id="su-tanggal"></div>
+      </div>
+      <div class="field"><label>Kepada (Jabatan)</label><input type="text" id="su-kepadaJabatan"></div>
+      <div class="field"><label>Nama Penerima</label><input type="text" id="su-kepadaNama"></div>
+      <div class="field"><label>Alamat Penerima</label><input type="text" id="su-alamat"></div>
+      <div class="field"><label>Salam Pembuka</label><input type="text" id="su-salam"></div>
+      <div class="field"><label>Isi Surat (pisahkan paragraf dengan baris kosong; awali baris dengan "- " untuk daftar)</label><textarea id="su-isi" rows="7"></textarea></div>
+      <div class="field"><label>Salam Penutup</label><textarea id="su-penutup" rows="2"></textarea></div>
+      <div class="row2">
+        <div class="field"><label>Jabatan Penandatangan</label><input type="text" id="su-jabatan"></div>
+        <div class="field"><label>Nama Penandatangan</label><input type="text" id="su-nama"></div>
+      </div>
+      <div class="field"><label>NIP</label><input type="text" id="su-nip"></div>
+      <div class="field"><label>Tembusan (satu per baris, kosongkan bila tidak ada)</label><textarea id="su-tembusan" rows="2"></textarea></div>
+    </div>
+    <div class="previewwrap"><div id="pagesSurat"></div></div>
+  </section>
+
+  <section class="tabpane" id="pane-pengaturan">
+    <div class="editor" style="width:520px;flex:0 0 520px">
+      <h3 style="margin:4px 0 10px;color:#1a3c6e">Identitas Sekolah / Kop Surat</h3>
+      <div class="field"><label>Nama Sekolah</label><input type="text" id="st-nama"></div>
+      <div class="field"><label>Alamat &amp; Kontak (ditulis di bawah nama sekolah)</label><textarea id="st-alamat" rows="2"></textarea></div>
+      <div class="field"><label>Kota (untuk tempat &amp; tanggal surat)</label><input type="text" id="st-kota"></div>
+      <div class="field">
+        <label>Gambar Kop Surat (logo + nama sekolah, format PNG/JPG)</label>
+        <span class="filelabel">Pilih Gambar Kop…<input type="file" id="st-kopfile" accept="image/*" style="display:none"></span>
+        <button class="btn mini" id="st-kophapus" style="margin-left:6px">Hapus Kop</button>
+        <div class="koprev" id="st-koprev"></div>
+      </div>
+      <h3 style="margin:16px 0 10px;color:#1a3c6e">Margin Dokumen (cm)</h3>
+      <div class="row2">
+        <div class="field"><label>Atas</label><input type="number" step="0.1" min="0" id="st-mt"></div>
+        <div class="field"><label>Bawah</label><input type="number" step="0.1" min="0" id="st-mb"></div>
+        <div class="field"><label>Kiri</label><input type="number" step="0.1" min="0" id="st-ml"></div>
+        <div class="field"><label>Kanan</label><input type="number" step="0.1" min="0" id="st-mk"></div>
+      </div>
+      <div class="hintline">Standar dokumen sekolah: 2 cm untuk semua sisi. Perubahan langsung terlihat di preview.</div>
+      <h3 style="margin:16px 0 10px;color:#1a3c6e">Penyimpanan Portable</h3>
+      <div class="hintline" style="font-size:12px;color:#555">
+        <b>config.js</b> (di folder aplikasi) menyimpan identitas sekolah, kop, dan margin — terpisah dari aplikasi.<br>
+        <b>data/data.js</b> menyimpan seluruh soal dan surat.<br>
+        Untuk memindahkan ke perangkat lain: klik <b>Ekspor Config</b> dan <b>Ekspor Data</b>, lalu timpa file lama di folder aplikasi pada perangkat tujuan.
+      </div>
+      <div style="margin-top:10px">
+        <button class="btn" id="st-saveconfig">Unduh config.js</button>
+        <button class="btn" id="st-savedata">Unduh data/data.js</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="measurer"></div>
+<div id="printMount"></div>
+
+<!--SOALKIT_JS_START-->
+<script>
+(function(){
+"use strict";
+
+var LS_KEY = "soalkit_v1";
+var LETTERS = ["A","B","C","D"];
+var ROMAN = {"7":"VII","8":"VIII","9":"IX"};
+var BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+var MM = 3.779527559;
+
+var cfg = null, state = null;
+var fileConfig = null, fileData = null;
+var filesLoaded = { config: false, data: false };
+var activeTab = "soal";
+var zoom = 0.8;
+var renderTimer = null, saveTimer = null;
+
+function todayISO(){
+  var d = new Date();
+  var m = String(d.getMonth()+1); if(m.length<2) m = "0"+m;
+  var day = String(d.getDate()); if(day.length<2) day = "0"+day;
+  return d.getFullYear()+"-"+m+"-"+day;
+}
+
+function defaults(){
+  return {
+    config: {
+      namaSekolah: "SMP NEGERI …",
+      alamat: "Jl. Pendidikan No. 1, Kecamatan …, Kabupaten … | Telp. (021) 555-0123 | Email: sekolah@sekolah.id",
+      kota: "Jakarta",
+      kopImage: "",
+      margin: { atas: 2, bawah: 2, kiri: 2, kanan: 2 }
+    },
+    soal: {
+      judul: "ULANGAN HARIAN", mapel: "Matematika", kelas: "7", waktu: 60, guru: "",
+      petunjuk: "Berilah tanda silang (×) pada huruf A, B, C, atau D di depan jawaban yang paling benar!",
+      pakaiKop: true, lembarJawaban: true, kunci: false,
+      questions: []
+    },
+    surat: {
+      pakaiKop: true, nomor: "", lampiran: "-", hal: "", tanggal: todayISO(),
+      kepadaJabatan: "", kepadaNama: "", alamat: "di Tempat",
+      salam: "Dengan hormat,", isi: "", penutup: "Demikian surat ini kami sampaikan. Atas perhatian dan kerja sama Bapak/Ibu, kami ucapkan terima kasih.",
+      jabatan: "Kepala Sekolah", nama: "", nip: "", tembusan: ""
+    }
+  };
+}
+
+function mergeInto(base, extra){
+  if(!extra || typeof extra !== "object") return base;
+  for(var k in extra){
+    if(!extra.hasOwnProperty(k)) continue;
+    var v = extra[k];
+    if(v && typeof v === "object" && !Array.isArray(v) && base[k] && typeof base[k] === "object" && !Array.isArray(base[k])){
+      mergeInto(base[k], v);
+    } else if(v !== undefined && v !== null){
+      base[k] = v;
+    }
+  }
+  return base;
+}
+
+function esc(s){
+  return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];
+  });
+}
+
+function loadScript(src, cb){
+  var s = document.createElement("script");
+  s.src = src;
+  s.onload = function(){ cb(true); };
+  s.onerror = function(){ cb(false); };
+  document.head.appendChild(s);
+}
+
+function init(){
+  var base = defaults();
+  if(fileConfig) mergeInto(base.config, fileConfig);
+
+  var ls = null;
+  try { ls = JSON.parse(localStorage.getItem(LS_KEY) || "null"); } catch(e){ ls = null; }
+
+  if(ls && ls.config){
+    state = ls;
+    mergeInto(base.config, state.config || {});
+    state.config = base.config;
+    state.soal = mergeInto(defaults().soal, state.soal || {});
+    state.surat = mergeInto(defaults().surat, state.surat || {});
+  } else {
+    state = base;
+    if(fileData){
+      if(fileData.soal) mergeInto(state.soal, fileData.soal);
+      if(fileData.surat) mergeInto(state.surat, fileData.surat);
+    }
+  }
+  cfg = state.config;
+  buildUI();
+  bindEvents();
+  renderStatus();
+  renderActive();
+}
+
+function renderStatus(){
+  var el = document.getElementById("statusLine");
+  var hasLs = !!localStorage.getItem(LS_KEY);
+  el.innerHTML = "Portable: <b class='"+(filesLoaded.config?"ok":"no")+"'>config.js " + (filesLoaded.config ? "terbaca" : "tidak ditemukan (pakai bawaan)") + "</b> · " +
+    "<b class='"+(filesLoaded.data?"ok":"no")+"'>data/data.js " + (filesLoaded.data ? "terbaca" : "tidak ditemukan") + "</b> · " +
+    "Penyimpanan perangkat: <b class='"+(hasLs?"ok":"no")+"'>" + (hasLs ? "aktif" : "belum ada") + "</b> · " +
+    "Margin " + esc(cfg.margin.kiri) + " cm";
+}
+
+function saveState(){
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e){}
+  renderStatus();
+}
+
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveState, 400);
+}
+
+function scheduleRender(){
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(renderActive, 160);
+}
+
+function buildUI(){
+  var s = state.soal, u = state.surat, c = cfg;
+  document.getElementById("so-judul").value = s.judul;
+  document.getElementById("so-mapel").value = s.mapel;
+  document.getElementById("so-kelas").value = String(s.kelas);
+  document.getElementById("so-waktu").value = s.waktu;
+  document.getElementById("so-guru").value = s.guru;
+  document.getElementById("so-petunjuk").value = s.petunjuk;
+  document.getElementById("so-kop").checked = !!s.pakaiKop;
+  document.getElementById("so-lj").checked = !!s.lembarJawaban;
+  document.getElementById("so-kunci").checked = !!s.kunci;
+  renderQList();
+
+  document.getElementById("su-kop").checked = !!u.pakaiKop;
+  document.getElementById("su-nomor").value = u.nomor;
+  document.getElementById("su-lampiran").value = u.lampiran;
+  document.getElementById("su-hal").value = u.hal;
+  document.getElementById("su-tanggal").value = u.tanggal;
+  document.getElementById("su-kepadaJabatan").value = u.kepadaJabatan;
+  document.getElementById("su-kepadaNama").value = u.kepadaNama;
+  document.getElementById("su-alamat").value = u.alamat;
+  document.getElementById("su-salam").value = u.salam;
+  document.getElementById("su-isi").value = u.isi;
+  document.getElementById("su-penutup").value = u.penutup;
+  document.getElementById("su-jabatan").value = u.jabatan;
+  document.getElementById("su-nama").value = u.nama;
+  document.getElementById("su-nip").value = u.nip;
+  document.getElementById("su-tembusan").value = u.tembusan;
+
+  document.getElementById("st-nama").value = c.namaSekolah;
+  document.getElementById("st-alamat").value = c.alamat;
+  document.getElementById("st-kota").value = c.kota;
+  document.getElementById("st-mt").value = c.margin.atas;
+  document.getElementById("st-mb").value = c.margin.bawah;
+  document.getElementById("st-ml").value = c.margin.kiri;
+  document.getElementById("st-mk").value = c.margin.kanan;
+  renderKopPreview();
+}
+
+function renderQList(){
+  var wrap = document.getElementById("qList");
+  var qs = state.soal.questions;
+  var html = "";
+  for(var i = 0; i < qs.length; i++){
+    var q = qs[i];
+    html += '<div class="qcard" data-i="'+i+'">' +
+      '<div class="qhead"><b>Soal '+(i+1)+'</b><span class="acts">' +
+      '<button class="btn mini" data-act="up" title="Naik">↑</button>' +
+      '<button class="btn mini" data-act="down" title="Turun">↓</button>' +
+      '<button class="btn mini" data-act="dup" title="Duplikat">⧉</button>' +
+      '<button class="btn mini" data-act="del" title="Hapus">✕</button></span></div>' +
+      '<textarea class="f-q" rows="2">'+esc(q.t)+'</textarea>';
+    for(var o = 0; o < 4; o++){
+      html += '<div class="optline"><span class="abc">'+LETTERS[o]+'</span>' +
+        '<input type="radio" name="key'+i+'" data-o="'+o+'"'+(q.key===o?" checked":"")+' title="Tandai sebagai kunci">' +
+        '<input class="f-opt" data-o="'+o+'" value="'+esc(q.opts[o])+'"></div>';
+    }
+    html += '</div>';
+  }
+  if(!qs.length) html = '<div class="hintline">Belum ada soal. Klik "+ Soal" untuk menambah.</div>';
+  wrap.innerHTML = html;
+}
+
+function renderKopPreview(){
+  var el = document.getElementById("st-koprev");
+  if(cfg.kopImage){
+    el.innerHTML = '<img src="'+cfg.kopImage+'" alt="kop">';
+  } else {
+    el.innerHTML = '<div class="none">Belum ada gambar kop. Kop teks akan dibuat dari nama &amp; alamat sekolah.</div>';
+  }
+}
+
+function kopHTML(pakai){
+  if(!pakai) return "";
+  if(cfg.kopImage) return '<img class="kop-img" src="'+cfg.kopImage+'" alt="kop">';
+  return '<div class="kop-text"><div class="kop-nama">'+esc(cfg.namaSekolah)+'</div>' +
+    '<div class="kop-alamat">'+esc(cfg.alamat).replace(/\n/g,"<br>")+'</div>' +
+    '<div class="kop-line"></div></div>';
+}
+
+function fmtDate(iso){
+  var p = String(iso || "").split("-");
+  if(p.length !== 3) return "";
+  return parseInt(p[2],10) + " " + BULAN[(parseInt(p[1],10)-1)] + " " + p[0];
+}
+
+function makeBlock(html, force){
+  var d = document.createElement("div");
+  d.className = "blk" + (force ? " force" : "");
+  d.innerHTML = html;
+  return d;
+}
+
+function soalHeaderBlock(){
+  var s = state.soal;
+  var h = kopHTML(s.pakaiKop);
+  h += '<div class="doc-title">'+esc(s.judul)+'</div>';
+  h += '<div class="doc-sub">Mata Pelajaran : '+esc(s.mapel)+' &nbsp;&nbsp;|&nbsp;&nbsp; Kelas : '+ (ROMAN[String(s.kelas)] || esc(s.kelas)) +' &nbsp;&nbsp;|&nbsp;&nbsp; Waktu : '+esc(s.waktu)+' menit</div>';
+  h += '<table class="ident"><tr><td>Nama</td><td>: ....................................................</td><td>Kelas</td><td>: ..................</td></tr>' +
+       '<tr><td>No. Peserta</td><td>: ....................................................</td><td>Hari / Tanggal</td><td>: ..................</td></tr></table>';
+  h += '<div class="petunjuk"><b>Petunjuk:</b> '+esc(s.petunjuk)+'</div>';
+  return makeBlock(h);
+}
+
+function questionBlock(q, i){
+  var h = '<div class="q-text"><b>'+(i+1)+'.</b> '+esc(q.t)+'</div>';
+  h += '<table class="opts"><tr><td>A. '+esc(q.opts[0])+'</td><td>B. '+esc(q.opts[1])+'</td></tr>' +
+       '<tr><td>C. '+esc(q.opts[2])+'</td><td>D. '+esc(q.opts[3])+'</td></tr></table>';
+  return makeBlock(h);
+}
+
+function answerSheetBlock(){
+  var qs = state.soal.questions;
+  var n = qs.length;
+  var rows = "";
+  for(var i = 0; i < n; i++){
+    var c = "";
+    for(var o = 0; o < 4; o++) c += '<span class="circ">'+LETTERS[o]+'</span>';
+    rows += '<div class="ans-row"><span class="ans-num">'+(i+1)+'.</span>'+c+'</div>';
+  }
+  var cols = Math.min(4, Math.max(1, Math.ceil(n / 12)));
+  var h = '<div class="ans-title">LEMBAR JAWABAN</div>';
+  h += '<table class="ident"><tr><td>Nama</td><td>: ..................................................</td><td>Kelas</td><td>: ................</td></tr>' +
+       '<tr><td>No. Peserta</td><td>: ..................................................</td><td>Jumlah Soal</td><td>: '+n+'</td></tr></table>';
+  h += '<div class="ans-hint">Bubuhkan tanda silang (×) pada lingkaran huruf A, B, C, atau D untuk jawaban yang benar.</div>';
+  h += '<div class="ans-grid" style="-webkit-column-count:'+cols+';column-count:'+cols+'">'+rows+'</div>';
+  return makeBlock(h, true);
+}
+
+function kunciBlock(){
+  var qs = state.soal.questions;
+  var items = "";
+  for(var i = 0; i < qs.length; i++){
+    var k = (qs[i].key != null && qs[i].key >= 0) ? LETTERS[qs[i].key] : "-";
+    items += '<span class="k-item"><b>'+(i+1)+'.</b> '+k+'</span>';
+  }
+  var cols = Math.min(6, Math.max(2, Math.ceil(qs.length / 8)));
+  var h = '<div class="ans-title">KUNCI JAWABAN</div>';
+  h += '<div class="kunci-grid" style="-webkit-column-count:'+cols+';column-count:'+cols+'">'+items+'</div>';
+  if(state.soal.guru) h += '<div class="k-note">Dibuat oleh: '+esc(state.soal.guru)+'</div>';
+  return makeBlock(h, true);
+}
+
+function isiHTML(text){
+  var paras = String(text || "").split(/\n\s*\n/);
+  var out = "";
+  for(var i = 0; i < paras.length; i++){
+    var p = paras[i].trim();
+    if(!p) continue;
+    var lines = p.split("\n");
+    if(lines.length > 1 && lines.every(function(l){ return /^\s*[-•]\s*/.test(l) || l.trim() === ""; })){
+      out += '<ul class="para-list">';
+      lines.forEach(function(l){
+        if(l.trim()) out += '<li>'+esc(l.replace(/^\s*[-•]\s*/,""))+'</li>';
+      });
+      out += '</ul>';
+    } else {
+      out += '<p class="para" style="margin:0 0 6pt">'+esc(p).replace(/\n/g,"<br>")+'</p>';
+    }
+  }
+  return out;
+}
+
+function suratBlocks(){
+  var u = state.surat;
+  var blocks = [];
+  var h = kopHTML(u.pakaiKop);
+  h += '<table class="surat-meta"><tr>' +
+       '<td><table class="ident" style="margin-top:2pt">' +
+       '<tr class="meta-line"><td class="lbl">Nomor</td><td>: '+esc(u.nomor)+'</td></tr>' +
+       '<tr class="meta-line"><td class="lbl">Lampiran</td><td>: '+esc(u.lampiran)+'</td></tr>' +
+       '<tr class="meta-line"><td class="lbl">Hal</td><td>: <b>'+esc(u.hal)+'</b></td></tr>' +
+       '</table></td>' +
+       '<td class="right">'+esc(cfg.kota)+', '+fmtDate(u.tanggal)+'</td>' +
+       '</tr></table>';
+  blocks.push(makeBlock(h));
+
+  var t = '<div class="tujuan">'+esc(u.kepadaJabatan ? u.kepadaJabatan : "");
+  if(u.kepadaNama) t += '<br>'+esc(u.kepadaNama);
+  t += '<br><u>'+esc(u.alamat || "di Tempat")+'</u></div>';
+  blocks.push(makeBlock(t));
+
+  blocks.push(makeBlock('<div class="salam">'+esc(u.salam)+'</div>'));
+  blocks.push(makeBlock(isiHTML(u.isi)));
+  blocks.push(makeBlock('<p class="para" style="margin:0">'+esc(u.penutup)+'</p>'));
+
+  var nip = u.nip ? '<br>NIP. '+esc(u.nip) : '';
+  var ttd = '<table class="ttd"><tr><td></td><td class="ttd-right">' +
+    esc(u.jabatan)+',' +
+    '<div style="height:42pt"></div>' +
+    '<div class="ttd-name">'+esc(u.nama)+'</div>' + nip +
+    '</td></tr></table>';
+  blocks.push(makeBlock(ttd));
+
+  var tb = String(u.tembusan || "").trim();
+  if(tb){
+    var lines = tb.split("\n").filter(function(l){ return l.trim(); });
+    var th = '<div class="tembusan"><u>Tembusan:</u><ol>';
+    lines.forEach(function(l){ th += '<li>'+esc(l.replace(/^\s*[-•\d.)]+\s*/,""))+'</li>'; });
+    th += '</ol></div>';
+    blocks.push(makeBlock(th));
+  }
+  return blocks;
+}
+
+function paginate(blocks, mount){
+  var m = cfg.margin;
+  var pageW = 210 * MM, pageH = 297 * MM;
+  var padT = (Number(m.atas)||0) * MM, padB = (Number(m.bawah)||0) * MM;
+  var padL = (Number(m.kiri)||0) * MM, padR = (Number(m.kanan)||0) * MM;
+  var innerW = pageW - padL - padR;
+  var innerH = (pageH - padT - padB) * 0.985;
+
+  var meas = document.getElementById("measurer");
+  meas.style.width = innerW + "px";
+  meas.style.font = "11pt 'Times New Roman',Times,serif";
+  meas.style.lineHeight = "1.45";
+
+  var heights = blocks.map(function(b){
+    meas.appendChild(b);
+    var h = b.offsetHeight;
+    meas.removeChild(b);
+    return h;
+  });
+
+  var pages = [], cur = [], curH = 0;
+  for(var i = 0; i < blocks.length; i++){
+    var force = blocks[i].classList.contains("force");
+    if(force && cur.length){ pages.push(cur); cur = []; curH = 0; }
+    if(cur.length && curH + heights[i] > innerH){ pages.push(cur); cur = []; curH = 0; }
+    cur.push(blocks[i]); curH += heights[i];
+    if(force){ pages.push(cur); cur = []; curH = 0; }
+  }
+  if(cur.length) pages.push(cur);
+
+  mount.innerHTML = "";
+  pages.forEach(function(pg){
+    var slot = document.createElement("div");
+    slot.className = "page-slot";
+    slot.style.width = (pageW * zoom) + "px";
+    slot.style.height = (pageH * zoom) + "px";
+    var page = document.createElement("div");
+    page.className = "page";
+    page.style.padding = padT + "px " + padR + "px " + padB + "px " + padL + "px";
+    page.style.transform = "scale(" + zoom + ")";
+    pg.forEach(function(b){ page.appendChild(b); });
+    slot.appendChild(page);
+    mount.appendChild(slot);
+  });
+
+  var imgs = mount.querySelectorAll("img");
+  for(var k = 0; k < imgs.length; k++){
+    (function(im){
+      if(!im.complete){
+        im.addEventListener("load", function(){ scheduleRender(); });
+        im.addEventListener("error", function(){ scheduleRender(); });
+      }
+    })(imgs[k]);
+  }
+}
+
+function renderActive(){
+  if(activeTab === "soal"){
+    var s = state.soal;
+    var blocks = [soalHeaderBlock()];
+    for(var i = 0; i < s.questions.length; i++) blocks.push(questionBlock(s.questions[i], i));
+    if(s.lembarJawaban && s.questions.length) blocks.push(answerSheetBlock());
+    if(s.kunci && s.questions.length) blocks.push(kunciBlock());
+    paginate(blocks, document.getElementById("pagesSoal"));
+  } else if(activeTab === "surat"){
+    paginate(suratBlocks(), document.getElementById("pagesSurat"));
+  }
+}
+
+function fillPrintMount(){
+  var mount = document.getElementById("printMount");
+  mount.innerHTML = "";
+  var src = document.getElementById(activeTab === "soal" ? "pagesSoal" : "pagesSurat");
+  var pages = src.querySelectorAll(".page");
+  for(var i = 0; i < pages.length; i++){
+    mount.appendChild(pages[i].cloneNode(true));
+  }
+  return pages.length;
+}
+
+function doPrint(){
+  var n = fillPrintMount();
+  if(!n) return;
+  var oldTitle = document.title;
+  if(activeTab === "soal") document.title = state.soal.judul + " - " + state.soal.mapel;
+  else document.title = "Surat " + (state.surat.hal || "");
+  window.print();
+  setTimeout(function(){ document.title = oldTitle; }, 500);
+}
+
+function download(name, content){
+  var blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+
+function exportData(){
+  var js = "// File data SoalKit. Simpan sebagai data/data.js di folder aplikasi.\n" +
+    "window.SOALKIT_DATA = window.SOALKIT_DATA || {};\n" +
+    "SOALKIT_DATA.soal = " + JSON.stringify(state.soal, null, 2) + ";\n" +
+    "SOALKIT_DATA.surat = " + JSON.stringify(state.surat, null, 2) + ";\n";
+  download("data.js", js);
+}
+
+function exportConfig(){
+  var js = "// File konfigurasi SoalKit. Simpan sebagai config.js di folder aplikasi.\n" +
+    "window.SOALKIT_CONFIG = " + JSON.stringify(cfg, null, 2) + ";\n";
+  download("config.js", js);
+}
+
+function importText(text){
+  text = String(text || "").trim();
+  try {
+    if(text.indexOf("SOALKIT_DATA") !== -1){
+      window.SOALKIT_DATA = null;
+      new Function(text)();
+      var d = window.SOALKIT_DATA;
+      if(d && d.soal) mergeInto(state.soal, d.soal);
+      if(d && d.surat) mergeInto(state.surat, d.surat);
+      buildUI(); saveState(); renderActive();
+      alert("Data berhasil diimpor.");
+      return;
+    }
+    if(text.indexOf("SOALKIT_CONFIG") !== -1){
+      window.SOALKIT_CONFIG = null;
+      new Function(text)();
+      var c = window.SOALKIT_CONFIG || {};
+      mergeInto(cfg, c);
+      buildUI(); saveState(); renderActive();
+      alert("Config berhasil diimpor. Jangan lupa klik 'Unduh config.js' untuk memperbarui file di folder aplikasi.");
+      return;
+    }
+    var obj = JSON.parse(text);
+    if(obj && obj.questions){
+      mergeInto(state.soal, obj);
+    } else if(obj && obj.nomor !== undefined){
+      mergeInto(state.surat, obj);
+    } else if(obj && obj.margin){
+      mergeInto(cfg, obj);
+    } else {
+      alert("Format file tidak dikenali.");
+      return;
+    }
+    buildUI(); saveState(); renderActive();
+    alert("Data berhasil diimpor.");
+  } catch(e){
+    alert("Gagal mengimpor file: " + e.message);
+  }
+}
+
+function shuffleQuestions(){
+  var qs = state.soal.questions;
+  for(var i = qs.length - 1; i > 0; i--){
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = qs[i]; qs[i] = qs[j]; qs[j] = t;
+  }
+  renderQList(); renderActive(); scheduleSave();
+}
+
+function bindEvents(){
+  document.querySelectorAll(".tabbtn").forEach(function(b){
+    b.addEventListener("click", function(){
+      document.querySelectorAll(".tabbtn").forEach(function(x){ x.classList.remove("active"); });
+      document.querySelectorAll(".tabpane").forEach(function(x){ x.classList.remove("active"); });
+      b.classList.add("active");
+      document.getElementById("pane-" + b.dataset.tab).classList.add("active");
+      activeTab = b.dataset.tab;
+      renderActive();
+    });
+  });
+
+  document.getElementById("btnPrint").addEventListener("click", doPrint);
+  document.getElementById("btnEksporData").addEventListener("click", exportData);
+  document.getElementById("btnEksporConfig").addEventListener("click", exportConfig);
+  document.getElementById("st-saveconfig").addEventListener("click", exportConfig);
+  document.getElementById("st-savedata").addEventListener("click", exportData);
+
+  document.getElementById("btnImpor").addEventListener("click", function(){
+    document.getElementById("fileImpor").click();
+  });
+  document.getElementById("fileImpor").addEventListener("change", function(e){
+    var f = e.target.files[0];
+    if(!f) return;
+    var r = new FileReader();
+    r.onload = function(){ importText(r.result); };
+    r.readAsText(f);
+    e.target.value = "";
+  });
+
+  document.getElementById("btnZoomIn").addEventListener("click", function(){ setZoom(zoom + 0.1); });
+  document.getElementById("btnZoomOut").addEventListener("click", function(){ setZoom(zoom - 0.1); });
+
+  document.getElementById("btnAddQ").addEventListener("click", function(){
+    state.soal.questions.push({ t: "", opts: ["", "", "", ""], key: null });
+    renderQList(); renderActive(); scheduleSave();
+    var cards = document.querySelectorAll(".qcard");
+    if(cards.length) cards[cards.length-1].querySelector(".f-q").focus();
+  });
+  document.getElementById("btnAcak").addEventListener("click", shuffleQuestions);
+
+  var qList = document.getElementById("qList");
+  qList.addEventListener("input", function(e){
+    var card = e.target.closest(".qcard");
+    if(!card) return;
+    var i = parseInt(card.dataset.i, 10);
+    var q = state.soal.questions[i];
+    if(!q) return;
+    if(e.target.classList.contains("f-q")) q.t = e.target.value;
+    if(e.target.classList.contains("f-opt")) q.opts[parseInt(e.target.dataset.o,10)] = e.target.value;
+    renderActive(); scheduleSave();
+  });
+  qList.addEventListener("change", function(e){
+    var card = e.target.closest(".qcard");
+    if(!card) return;
+    var i = parseInt(card.dataset.i, 10);
+    var q = state.soal.questions[i];
+    if(!q) return;
+    if(e.target.type === "radio"){
+      q.key = (q.key === parseInt(e.target.dataset.o,10)) ? null : parseInt(e.target.dataset.o,10);
+      renderQList(); renderActive(); scheduleSave();
+    }
+  });
+  qList.addEventListener("click", function(e){
+    var btn = e.target.closest("button[data-act]");
+    if(!btn) return;
+    var card = btn.closest(".qcard");
+    var i = parseInt(card.dataset.i, 10);
+    var qs = state.soal.questions;
+    var act = btn.dataset.act;
+    if(act === "del"){
+      if(confirm("Hapus soal " + (i+1) + "?")) qs.splice(i, 1);
+    } else if(act === "dup"){
+      var copy = JSON.parse(JSON.stringify(qs[i]));
+      copy.key = null;
+      qs.splice(i + 1, 0, copy);
+    } else if(act === "up" && i > 0){
+      var a = qs[i]; qs[i] = qs[i-1]; qs[i-1] = a;
+    } else if(act === "down" && i < qs.length - 1){
+      var b = qs[i]; qs[i] = qs[i+1]; qs[i+1] = b;
+    } else { return; }
+    renderQList(); renderActive(); scheduleSave();
+  });
+
+  function bindField(id, fn){
+    document.getElementById(id).addEventListener("input", function(e){
+      fn(e.target);
+      renderActive(); scheduleSave();
+    });
+    document.getElementById(id).addEventListener("change", function(e){
+      fn(e.target);
+      renderActive(); scheduleSave();
+    });
+  }
+
+  bindField("so-judul", function(t){ state.soal.judul = t.value; });
+  bindField("so-mapel", function(t){ state.soal.mapel = t.value; });
+  bindField("so-kelas", function(t){ state.soal.kelas = t.value; });
+  bindField("so-waktu", function(t){ state.soal.waktu = t.value; });
+  bindField("so-guru", function(t){ state.soal.guru = t.value; });
+  bindField("so-petunjuk", function(t){ state.soal.petunjuk = t.value; });
+  bindField("so-kop", function(t){ state.soal.pakaiKop = t.checked; });
+  bindField("so-lj", function(t){ state.soal.lembarJawaban = t.checked; });
+  bindField("so-kunci", function(t){ state.soal.kunci = t.checked; });
+
+  bindField("su-kop", function(t){ state.surat.pakaiKop = t.checked; });
+  bindField("su-nomor", function(t){ state.surat.nomor = t.value; });
+  bindField("su-lampiran", function(t){ state.surat.lampiran = t.value; });
+  bindField("su-hal", function(t){ state.surat.hal = t.value; });
+  bindField("su-tanggal", function(t){ state.surat.tanggal = t.value; });
+  bindField("su-kepadaJabatan", function(t){ state.surat.kepadaJabatan = t.value; });
+  bindField("su-kepadaNama", function(t){ state.surat.kepadaNama = t.value; });
+  bindField("su-alamat", function(t){ state.surat.alamat = t.value; });
+  bindField("su-salam", function(t){ state.surat.salam = t.value; });
+  bindField("su-isi", function(t){ state.surat.isi = t.value; });
+  bindField("su-penutup", function(t){ state.surat.penutup = t.value; });
+  bindField("su-jabatan", function(t){ state.surat.jabatan = t.value; });
+  bindField("su-nama", function(t){ state.surat.nama = t.value; });
+  bindField("su-nip", function(t){ state.surat.nip = t.value; });
+  bindField("su-tembusan", function(t){ state.surat.tembusan = t.value; });
+
+  bindField("st-nama", function(t){ cfg.namaSekolah = t.value; });
+  bindField("st-alamat", function(t){ cfg.alamat = t.value; });
+  bindField("st-kota", function(t){ cfg.kota = t.value; });
+  bindField("st-mt", function(t){ cfg.margin.atas = Number(t.value); });
+  bindField("st-mb", function(t){ cfg.margin.bawah = Number(t.value); });
+  bindField("st-ml", function(t){ cfg.margin.kiri = Number(t.value); });
+  bindField("st-mk", function(t){ cfg.margin.kanan = Number(t.value); });
+
+  document.getElementById("st-kopfile").addEventListener("change", function(e){
+    var f = e.target.files[0];
+    if(!f) return;
+    var r = new FileReader();
+    r.onload = function(){
+      cfg.kopImage = r.result;
+      renderKopPreview(); renderActive(); scheduleSave();
+      alert("Kop dimuat. Jangan lupa 'Unduh config.js' agar kop ikut tersimpan di folder aplikasi.");
+    };
+    r.readAsDataURL(f);
+    e.target.value = "";
+  });
+  document.getElementById("st-kophapus").addEventListener("click", function(){
+    cfg.kopImage = "";
+    renderKopPreview(); renderActive(); scheduleSave();
+  });
+
+  window.addEventListener("beforeprint", fillPrintMount);
+}
+
+function setZoom(z){
+  zoom = Math.min(1.2, Math.max(0.4, Math.round(z * 10) / 10));
+  document.getElementById("zoomLabel").textContent = Math.round(zoom * 100) + "%";
+  renderActive();
+}
+
+loadScript("config.js", function(ok){
+  filesLoaded.config = ok;
+  if(ok) fileConfig = window.SOALKIT_CONFIG || null;
+  var dataPath = (fileConfig && fileConfig.dataFile) ? fileConfig.dataFile : "data/data.js";
+  loadScript(dataPath, function(ok2){
+    filesLoaded.data = ok2;
+    if(ok2) fileData = window.SOALKIT_DATA || null;
+    init();
+  });
+});
+})();
+</script>
+<!--SOALKIT_JS_END-->
+
+</body>
+</html>

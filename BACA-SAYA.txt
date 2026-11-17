@@ -1,0 +1,70 @@
+==========================================================
+  SOALKIT PORTABLE - Pembuat Soal & Surat Otomatis
+  Untuk Windows 7 / 8 / 10 / 11 (spesifikasi rendah pun jalan)
+==========================================================
+
+CARA MENJALANKAN
+----------------
+1. Buka folder ini, lalu klik dua kali "SoalKit.bat"
+   (atau buka "SoalKit.html" langsung dengan browser).
+2. Tidak perlu instalasi, tidak perlu internet, tidak perlu
+   hak administrator. Cukup browser (disarankan Chrome atau
+   Firefox; di Windows 7 gunakan Chrome/Firefox versi terakhir
+   yang mendukung Windows 7).
+3. Seluruh aplikasi hanya SATU file HTML, jadi sangat ringan.
+
+STRUKTUR FOLDER (PORTABLE)
+--------------------------
+  SoalKit.html      -> aplikasinya (jangan diubah)
+  SoalKit.bat       -> pembuka cepat (opsional)
+  config.js         -> KONFIGURASI terpisah dari aplikasi:
+                       nama & alamat sekolah, gambar kop,
+                       margin (default 2 cm semua sisi)
+  data\data.js      -> DATA: seluruh soal dan surat Anda
+  BACA-SAYA.txt     -> file ini
+
+FITUR
+-----
+* Tab "Soal"   : menulis soal pilihan ganda A-B-C-D untuk
+                 kelas 7, 8, dan 9 (SMP). Preview naskah
+                 tampil langsung di samping kanan.
+* Tab "Surat"  : membuat surat resmi sekolah (undangan,
+                 pemberitahuan, dll.) dengan kop dan tanda tangan.
+* Lembar jawaban berbentuk LINGKARAN A B C D otomatis
+  ditambahkan di halaman terakhir naskah soal.
+* Bisa menambahkan halaman KUNCI JAWABAN untuk versi guru.
+* Kop surat bisa berupa gambar: buka tab "Pengaturan",
+  klik "Pilih Gambar Kop" (PNG/JPG, misal hasil scan kop).
+* Margin kiri-kanan-atas-bawah, default 2 cm, bisa diubah.
+* Tombol "Cetak / PDF": pilih printer untuk mencetak langsung,
+  atau pilih "Microsoft Print to PDF" / "Save as PDF" untuk
+  menyimpan menjadi file PDF.
+
+MENYIMPAN DATA
+--------------
+* Sementara: otomatis tersimpan di perangkat (localStorage)
+  setiap kali Anda mengetik.
+* Permanen/portable: klik "Ekspor Data" untuk mengunduh
+  data.js, lalu simpan/timpa di folder "data" aplikasi.
+  Untuk konfigurasi (sekolah, kop, margin), klik
+  "Ekspor Config" atau "Unduh config.js" lalu timpa
+  config.js di folder aplikasi.
+* Mengimpor kembali: klik tombol "Impor" lalu pilih file
+  data.js / config.js / .json.
+
+MEMINDAHKAN KE PERANGKAT LAIN
+-----------------------------
+1. Klik "Ekspor Data"  -> simpan sebagai data\data.js
+2. Klik "Ekspor Config" -> simpan sebagai config.js
+3. Salin SELURUH folder ini ke flashdisk / perangkat baru.
+4. Di perangkat baru, buka SoalKit.html — config dan data
+   langsung terbaca otomatis karena filenya memang terpisah
+   dari aplikasi.
+
+CATATAN CETAK
+-------------
+* Ukuran kertas diset A4. Pastikan pilihan kertas di dialog
+  cetak juga A4 dan skala 100% agar margin 2 cm sesuai.
+* Windows 10/11 punya printer "Microsoft Print to PDF" bawaan.
+* Windows 7: gunakan menu "Save as PDF" di dialog cetak
+  browser (Chrome/Firefox), atau instal printer PDF gratisan.
