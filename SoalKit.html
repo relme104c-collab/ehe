@@ -81,10 +81,20 @@ table.ident td{padding:1pt 8pt 1pt 0;vertical-align:top}
 table.opts{width:100%;border-collapse:collapse;margin-top:1pt}
 table.opts td{width:50%;vertical-align:top;padding:1pt 8pt 1pt 0}
 table.opts.one td{width:100%;padding:1pt 0}
-.q-img{display:block;max-width:70%;max-height:3.2cm;margin:3pt auto 1pt}
+.q-img{display:block;max-width:70%;max-height:3.2cm;margin:3pt 0 1pt}
 .q-img.inline{display:inline-block;max-height:2cm;max-width:60%;vertical-align:middle;margin:0 4pt}
 .opt-img{display:inline-block;max-width:4.5cm;max-height:1.8cm;vertical-align:middle;margin:1pt 0 1pt 4pt}
 .opt-img.before{margin:0 4pt 0 0}
+.opt-img.block{display:block;margin:2pt 0 0}
+.mini-lbl{font-size:11px;color:#666;display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.mini-lbl input{width:52px;padding:3px 5px;border:1px solid #c5cad1;border-radius:4px;font:inherit;font-size:12px}
+.mini-lbl select,.qimgbar select{padding:3px 5px;border:1px solid #c5cad1;border-radius:4px;font:inherit;font-size:11.5px;background:#fff}
+.richbar{display:flex;align-items:center;gap:3px;margin:6px 0}
+.richbar button{min-width:30px}
+.rich{border:1px solid #c5cad1;border-radius:4px;padding:5px 7px;font-size:12.5px;background:#fff;min-height:34px;line-height:1.4;word-break:break-word;outline:none}
+.rich:focus{border-color:#1a73e8}
+.rich:empty:before{content:attr(data-ph);color:#9aa0a6}
+.rich img{max-width:100%}
 .passage{border:1pt solid #000;line-height:1.4}
 .flow2{display:flex;justify-content:space-between}
 .col2{min-width:0}
@@ -211,6 +221,12 @@ table.ttd td{vertical-align:top}
         <span><button class="btn mini" id="btnAcak">Acak Urutan</button> <button class="btn mini primary" id="btnAddQ">+ Soal</button></span>
       </div>
       <div class="hintline">Tandai salah satu pilihan sebagai kunci jawaban bila halaman kunci ingin dicetak.</div>
+      <div class="richbar" id="richbar"><span style="font-size:11px;color:#777">Format teks:</span>
+        <button class="btn mini" data-cmd="bold" title="Tebal (Ctrl+B)"><b>B</b></button>
+        <button class="btn mini" data-cmd="italic" title="Miring (Ctrl+I)"><i>I</i></button>
+        <button class="btn mini" data-cmd="underline" title="Garis bawah (Ctrl+U)"><u>U</u></button>
+        <span class="hintline" style="margin:0">blok teksnya dulu, lalu klik B / I / U</span>
+      </div>
       <div id="qList"></div>
     </div>
     <div class="previewwrap"><div id="pagesSoal"></div></div>
@@ -361,6 +377,33 @@ function esc(s){
   });
 }
 
+function cleanRich(html){
+  var d = document.createElement("div");
+  d.innerHTML = String(html || "");
+  var bad = d.querySelectorAll("script,style,iframe,object,embed,link,meta");
+  for(var i = 0; i < bad.length; i++) bad[i].remove();
+  var all = d.querySelectorAll("*");
+  for(var j = 0; j < all.length; j++){
+    var el = all[j];
+    var attrs = [].slice.call(el.attributes);
+    for(var k = 0; k < attrs.length; k++){
+      var a = attrs[k];
+      if(/^on/i.test(a.name)) el.removeAttribute(a.name);
+      else if((a.name === "href" || a.name === "src") && /^\s*javascript:/i.test(a.value)) el.removeAttribute(a.name);
+    }
+  }
+  return d.innerHTML;
+}
+
+function imgDim(w){
+  return (Number(w) > 0) ? ("width:" + Number(w) + "cm;max-width:100%;height:auto;max-height:none;") : "";
+}
+function imgAlignStyle(a){
+  if(a === "center") return "margin-left:auto;margin-right:auto;";
+  if(a === "right") return "margin-left:auto;";
+  return "";
+}
+
 function loadScript(src, cb){
   var s = document.createElement("script");
   s.src = src;
@@ -457,6 +500,10 @@ function normalizeData(){
     if(typeof q.t !== "string") q.t = "";
     if(typeof q.img !== "string") q.img = "";
     if(q.imgPos !== "before") q.imgPos = "after";
+    q.imgW = (Number(q.imgW) > 0) ? Number(q.imgW) : 0;
+    q.imgAlign = ["left","center","right"].indexOf(q.imgAlign) !== -1 ? q.imgAlign : "left";
+    q.oimgW = (Number(q.oimgW) > 0) ? Number(q.oimgW) : 0;
+    q.oimgAlign = ["left","center","right"].indexOf(q.oimgAlign) !== -1 ? q.oimgAlign : "left";
     if(!Array.isArray(q.opts) || q.opts.length < 4){
       var opts = [];
       for(var o = 0; o < 4; o++) opts.push(Array.isArray(q.opts) && typeof q.opts[o] === "string" ? q.opts[o] : "");
@@ -659,15 +706,19 @@ function renderQList(){
       '<button class="btn mini" data-act="down" title="Turun">↓</button>' +
       '<button class="btn mini" data-act="dup" title="Duplikat">⧉</button>' +
       '<button class="btn mini" data-act="del" title="Hapus">✕</button></span></div>' +
-      '<textarea class="f-q" rows="2">'+esc(q.t)+'</textarea>' +
+      '<div class="f-q rich" contenteditable="true" data-ph="Tulis soal di sini...">'+cleanRich(q.t)+'</div>' +
       '<div class="qimgbar"><button class="btn mini" data-act="imgq" title="Tambah gambar pada soal">🖼 Gambar Soal</button>' +
       (q.img ? '<img src="'+q.img+'" alt=""><button class="btn mini" data-act="imgqdel" title="Hapus gambar soal">✕</button>' : '') +
-      '<select class="f-ipos" title="Posisi gambar soal & pilihan"><option value="after"'+(q.imgPos!=="before"?" selected":"")+'>Gambar sesudah teks</option><option value="before"'+(q.imgPos==="before"?" selected":"")+'>Gambar sebelum teks</option></select>' +
-      '</div>';
+      '<select class="f-ipos" title="Posisi gambar soal & pilihan"><option value="after"'+(q.imgPos!=="before"?" selected":"")+'>Sesudah teks</option><option value="before"'+(q.imgPos==="before"?" selected":"")+'>Sebelum teks</option></select>' +
+      '<label class="mini-lbl">Lebar <input type="number" class="f-qw" step="0.1" min="0" value="'+(Number(q.imgW)||0)+'" title="Lebar gambar soal (cm), 0 = otomatis"> cm</label>' +
+      '<select class="f-qalign" title="Perataan gambar soal"><option value="left"'+(q.imgAlign==="center"||q.imgAlign==="right"?"":" selected")+'>Kiri</option><option value="center"'+(q.imgAlign==="center"?" selected":"")+'>Tengah</option><option value="right"'+(q.imgAlign==="right"?" selected":"")+'>Kanan</option></select>' +
+      '</div>' +
+      '<div class="qimgbar"><label class="mini-lbl">Lebar gambar pilihan <input type="number" class="f-ow" step="0.1" min="0" value="'+(Number(q.oimgW)||0)+'" title="Lebar gambar pilihan (cm), 0 = otomatis"> cm</label>' +
+      '<select class="f-oalign" title="Perataan gambar pilihan"><option value="left"'+(q.oimgAlign==="center"||q.oimgAlign==="right"?"":" selected")+'>Kiri</option><option value="center"'+(q.oimgAlign==="center"?" selected":"")+'>Tengah</option><option value="right"'+(q.oimgAlign==="right"?" selected":"")+'>Kanan</option></select></div>';
     for(var o = 0; o < 4; o++){
       html += '<div class="optline"><span class="abc">'+LETTERS[o]+'</span>' +
         '<input type="radio" name="key'+i+'" data-o="'+o+'"'+(q.key===o?" checked":"")+' title="Tandai sebagai kunci">' +
-        '<input class="f-opt" data-o="'+o+'" value="'+esc(q.opts[o])+'">' +
+        '<div class="f-opt rich" contenteditable="true" data-o="'+o+'" data-ph="Pilihan '+LETTERS[o]+'">'+cleanRich(q.opts[o])+'</div>' +
         '<button class="btn mini" data-act="imgopt" data-o="'+o+'" title="Gambar untuk pilihan '+LETTERS[o]+'">🖼</button>' +
         (q.oimgs && q.oimgs[o] ? '<img class="optthumb" src="'+q.oimgs[o]+'" alt=""><button class="btn mini" data-act="optimgdel" data-o="'+o+'" title="Hapus gambar pilihan">✕</button>' : '') +
         '</div>';
@@ -762,16 +813,16 @@ function questionBlock(q, i){
   var before = q.imgPos === "before";
   var qimg = q.img || "";
   var h = '<div class="q-text"><b>'+(i+1)+'.</b> ';
-  if(before && qimg) h += '<img class="q-img inline" src="'+qimg+'" alt="">';
-  h += esc(q.t);
-  if(!before && qimg) h += '<img class="q-img" src="'+qimg+'" alt="">';
+  if(before && qimg) h += '<img class="q-img inline" style="'+imgDim(q.imgW)+'" src="'+qimg+'" alt="">';
+  h += cleanRich(q.t);
+  if(!before && qimg) h += '<img class="q-img" style="'+imgDim(q.imgW)+imgAlignStyle(q.imgAlign)+'" src="'+qimg+'" alt="">';
   h += '</div>';
   var one = state.soal.optLayout === "4row";
   function cell(letter, text, img){
     var inner = letter + '. ';
-    if(before && img) inner += '<img class="opt-img before" src="'+img+'" alt="">';
-    inner += esc(text);
-    if(!before && img) inner += '<img class="opt-img" src="'+img+'" alt="">';
+    if(before && img) inner += '<img class="opt-img before" style="'+imgDim(q.oimgW)+'" src="'+img+'" alt="">';
+    inner += cleanRich(text);
+    if(!before && img) inner += '<img class="opt-img block" style="'+imgDim(q.oimgW)+imgAlignStyle(q.oimgAlign)+'" src="'+img+'" alt="">';
     return (one ? '<tr><td>' : '<td>') + inner + (one ? '</td></tr>' : '</td>');
   }
   h += '<table class="opts'+(one?' one':'')+'">';
@@ -1146,7 +1197,7 @@ function bindEvents(){
   document.getElementById("btnZoomOut").addEventListener("click", function(){ setZoom(zoom - 0.1); });
 
   document.getElementById("btnAddQ").addEventListener("click", function(){
-    state.soal.questions.push({ t: "", opts: ["", "", "", ""], oimgs: ["", "", "", ""], img: "", imgPos: "after", key: null });
+    state.soal.questions.push({ t: "", opts: ["", "", "", ""], oimgs: ["", "", "", ""], img: "", imgPos: "after", imgW: 0, imgAlign: "left", oimgW: 0, oimgAlign: "left", key: null });
     renderQList(); renderActive(); scheduleSave();
     var cards = document.querySelectorAll(".qcard");
     if(cards.length) cards[cards.length-1].querySelector(".f-q").focus();
@@ -1160,8 +1211,10 @@ function bindEvents(){
     var i = parseInt(card.dataset.i, 10);
     var q = state.soal.questions[i];
     if(!q) return;
-    if(e.target.classList.contains("f-q")) q.t = e.target.value;
-    if(e.target.classList.contains("f-opt")) q.opts[parseInt(e.target.dataset.o,10)] = e.target.value;
+    if(e.target.classList.contains("f-q")) q.t = cleanRich(e.target.innerHTML);
+    if(e.target.classList.contains("f-opt")) q.opts[parseInt(e.target.dataset.o,10)] = cleanRich(e.target.innerHTML);
+    if(e.target.classList.contains("f-qw")) q.imgW = Math.max(0, Number(e.target.value) || 0);
+    if(e.target.classList.contains("f-ow")) q.oimgW = Math.max(0, Number(e.target.value) || 0);
     renderActive(); scheduleSave();
   });
   qList.addEventListener("change", function(e){
@@ -1177,6 +1230,40 @@ function bindEvents(){
     if(e.target.classList.contains("f-ipos")){
       q.imgPos = e.target.value;
       renderActive(); scheduleSave();
+    }
+    if(e.target.classList.contains("f-qalign")){
+      q.imgAlign = e.target.value;
+      renderActive(); scheduleSave();
+    }
+    if(e.target.classList.contains("f-oalign")){
+      q.oimgAlign = e.target.value;
+      renderActive(); scheduleSave();
+    }
+  });
+
+  var lastRich = null;
+  qList.addEventListener("focusin", function(e){
+    if(e.target.classList && e.target.classList.contains("rich")) lastRich = e.target;
+  });
+  var richbar = document.getElementById("richbar");
+  richbar.addEventListener("mousedown", function(e){
+    if(e.target.closest("button")) e.preventDefault();
+  });
+  richbar.addEventListener("click", function(e){
+    var btn = e.target.closest("button[data-cmd]");
+    if(!btn) return;
+    if(!document.execCommand){ alert("Browser ini tidak mendukung format teks. Gunakan Chrome/Firefox."); return; }
+    if(!lastRich){ alert("Klik dulu ke teks soal atau pilihan yang ingin diformat, lalu klik tombol format."); return; }
+    document.execCommand(btn.dataset.cmd, false, null);
+    var card = lastRich.closest(".qcard");
+    if(card){
+      var qi = parseInt(card.dataset.i, 10);
+      var qq = state.soal.questions[qi];
+      if(qq){
+        if(lastRich.classList.contains("f-q")) qq.t = cleanRich(lastRich.innerHTML);
+        else if(lastRich.classList.contains("f-opt")) qq.opts[parseInt(lastRich.dataset.o,10)] = cleanRich(lastRich.innerHTML);
+        renderActive(); scheduleSave();
+      }
     }
   });
 
