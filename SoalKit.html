@@ -62,7 +62,7 @@ main{padding:10px}
 
 #measurer{position:absolute;left:-99999px;top:0;visibility:hidden}
 .page-slot{margin:0 auto 16px;position:relative}
-.page{width:210mm;height:297mm;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.4);font-family:'Times New Roman',Times,serif;font-size:11pt;line-height:1.45;color:#000;overflow:hidden;transform-origin:top left;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.page{position:relative;width:210mm;height:297mm;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.4);font-family:'Times New Roman',Times,serif;font-size:11pt;line-height:1.45;color:#000;overflow:hidden;transform-origin:top left;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .blk{padding-bottom:8pt}
 .blk.force{padding-bottom:0}
 
@@ -82,7 +82,13 @@ table.opts{width:100%;border-collapse:collapse;margin-top:1pt}
 table.opts td{width:50%;vertical-align:top;padding:1pt 8pt 1pt 0}
 table.opts.one td{width:100%;padding:1pt 0}
 .q-img{display:block;max-width:70%;max-height:3.2cm;margin:3pt auto 1pt}
+.q-img.inline{display:inline-block;max-height:2cm;max-width:60%;vertical-align:middle;margin:0 4pt}
 .opt-img{display:inline-block;max-width:4.5cm;max-height:1.8cm;vertical-align:middle;margin:1pt 0 1pt 4pt}
+.opt-img.before{margin:0 4pt 0 0}
+.passage{border:1pt solid #000;line-height:1.4}
+.flow2{display:flex;justify-content:space-between}
+.col2{min-width:0}
+.doc-footer{position:absolute;bottom:0.35cm;display:flex;justify-content:space-between;align-items:baseline;font-size:9pt}
 .qimgbar{display:flex;align-items:center;gap:5px;margin:3px 0 7px;flex-wrap:wrap}
 .qimgbar img,.optthumb{max-height:34px;max-width:80px;border:1px solid #ccc;border-radius:3px;background:#fff;padding:1px}
 #toast{position:fixed;right:14px;bottom:14px;background:#1a3c6e;color:#fff;padding:10px 16px;border-radius:6px;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.35);display:none;z-index:99}
@@ -170,17 +176,37 @@ table.ttd td{vertical-align:top}
         <div class="field"><label>Guru / Pembuat</label><input type="text" id="so-guru"></div>
       </div>
       <div class="field"><label>Petunjuk Pengerjaan</label><textarea id="so-petunjuk" rows="2"></textarea></div>
-      <div class="field"><label>Tata Letak Pilihan Jawaban</label>
-        <select id="so-layout">
-          <option value="2col">2 kolom — A B / C D berdampingan</option>
-          <option value="4row">4 baris — A, B, C, D ke bawah</option>
-        </select>
+      <div class="row2">
+        <div class="field"><label>Tata Letak Pilihan Jawaban</label>
+          <select id="so-layout">
+            <option value="2col">2 kolom — A B / C D berdampingan</option>
+            <option value="4row">4 baris — A, B, C, D ke bawah</option>
+          </select>
+        </div>
+        <div class="field"><label>Kolom Soal per Halaman</label>
+          <select id="so-qcols">
+            <option value="1">1 kolom</option>
+            <option value="2">2 kolom</option>
+          </select>
+        </div>
       </div>
+      <div class="field"><label>Teks Footer (kosongkan bila hanya ingin nomor halaman)</label><input type="text" id="so-footer"></div>
       <div class="checks">
         <label><input type="checkbox" id="so-kop"> Kop surat</label>
         <label><input type="checkbox" id="so-lj"> Lembar jawaban</label>
         <label><input type="checkbox" id="so-kunci"> Kunci (guru)</label>
       </div>
+      <div class="checks" style="margin-top:0">
+        <label><input type="checkbox" id="id-nama"> Nama</label>
+        <label><input type="checkbox" id="id-no"> No. Peserta</label>
+        <label><input type="checkbox" id="id-kelas"> Kelas</label>
+        <label><input type="checkbox" id="id-tgl"> Hari/Tanggal</label>
+      </div>
+      <div class="qbar"><b>Teks Cerita / Bacaan (kotak teks)</b>
+        <span><button class="btn mini primary" id="btnAddPassage">+ Cerita</button></span>
+      </div>
+      <div class="hintline">Teks cerita (mis. bacaan soal cerita) tampil dalam kotak berbingkai. Atur posisi penyisipan, jarak kiri/kanan, dan perataan pada setiap kotak.</div>
+      <div id="pList"></div>
       <div class="qbar"><b>Daftar Soal (Pilihan Ganda A–D)</b>
         <span><button class="btn mini" id="btnAcak">Acak Urutan</button> <button class="btn mini primary" id="btnAddQ">+ Soal</button></span>
       </div>
@@ -301,6 +327,9 @@ function defaults(){
       judul: "ULANGAN HARIAN", mapel: "Matematika", kelas: "7", waktu: 60, guru: "",
       petunjuk: "Berilah tanda silang (×) pada huruf A, B, C, atau D di depan jawaban yang paling benar!",
       pakaiKop: true, lembarJawaban: true, kunci: false, optLayout: "2col",
+      qCols: 1, footer: "",
+      idFields: { nama: true, no: true, kelas: true, tgl: true },
+      passages: [],
       questions: []
     },
     surat: {
@@ -427,6 +456,7 @@ function normalizeData(){
     if(!q || typeof q !== "object"){ qs.splice(i,1); continue; }
     if(typeof q.t !== "string") q.t = "";
     if(typeof q.img !== "string") q.img = "";
+    if(q.imgPos !== "before") q.imgPos = "after";
     if(!Array.isArray(q.opts) || q.opts.length < 4){
       var opts = [];
       for(var o = 0; o < 4; o++) opts.push(Array.isArray(q.opts) && typeof q.opts[o] === "string" ? q.opts[o] : "");
@@ -439,6 +469,22 @@ function normalizeData(){
     }
   }
   if(state.soal.optLayout !== "4row") state.soal.optLayout = "2col";
+  if(state.soal.qCols !== 2) state.soal.qCols = 1;
+  if(typeof state.soal.footer !== "string") state.soal.footer = "";
+  var idf = state.soal.idFields;
+  if(!idf || typeof idf !== "object" || Array.isArray(idf)) state.soal.idFields = { nama: true, no: true, kelas: true, tgl: true };
+  var ps = state.soal.passages;
+  if(!Array.isArray(ps)) state.soal.passages = [];
+  ps = state.soal.passages;
+  for(var j = ps.length - 1; j >= 0; j--){
+    var p = ps[j];
+    if(!p || typeof p !== "object"){ ps.splice(j,1); continue; }
+    if(typeof p.t !== "string") p.t = "";
+    p.pos = (parseInt(p.pos,10) >= 0) ? parseInt(p.pos,10) : 0;
+    if(["left","center","justify"].indexOf(p.align) === -1) p.align = "justify";
+    p.padL = (Number(p.padL) >= 0) ? Number(p.padL) : 0.4;
+    p.padR = (Number(p.padR) >= 0) ? Number(p.padR) : 0.4;
+  }
 }
 
 function processImageFile(file, cb){
@@ -591,6 +637,13 @@ function buildUI(){
   document.getElementById("st-mk").value = c.margin.kanan;
   document.getElementById("st-auto").checked = !!c.autoSaveFolder;
   document.getElementById("so-layout").value = s.optLayout || "2col";
+  document.getElementById("so-qcols").value = String(s.qCols || 1);
+  document.getElementById("so-footer").value = s.footer || "";
+  document.getElementById("id-nama").checked = s.idFields.nama !== false;
+  document.getElementById("id-no").checked = s.idFields.no !== false;
+  document.getElementById("id-kelas").checked = s.idFields.kelas !== false;
+  document.getElementById("id-tgl").checked = s.idFields.tgl !== false;
+  renderPList();
   renderKopPreview();
 }
 
@@ -609,6 +662,7 @@ function renderQList(){
       '<textarea class="f-q" rows="2">'+esc(q.t)+'</textarea>' +
       '<div class="qimgbar"><button class="btn mini" data-act="imgq" title="Tambah gambar pada soal">🖼 Gambar Soal</button>' +
       (q.img ? '<img src="'+q.img+'" alt=""><button class="btn mini" data-act="imgqdel" title="Hapus gambar soal">✕</button>' : '') +
+      '<select class="f-ipos" title="Posisi gambar soal & pilihan"><option value="after"'+(q.imgPos!=="before"?" selected":"")+'>Gambar sesudah teks</option><option value="before"'+(q.imgPos==="before"?" selected":"")+'>Gambar sebelum teks</option></select>' +
       '</div>';
     for(var o = 0; o < 4; o++){
       html += '<div class="optline"><span class="abc">'+LETTERS[o]+'</span>' +
@@ -654,26 +708,71 @@ function makeBlock(html, force){
   return d;
 }
 
+function renderPList(){
+  var wrap = document.getElementById("pList");
+  var ps = state.soal.passages || [];
+  var html = "";
+  for(var i = 0; i < ps.length; i++){
+    var p = ps[i];
+    html += '<div class="qcard" data-pi="'+i+'">' +
+      '<div class="qhead"><b>Cerita '+(i+1)+'</b><span class="acts">' +
+      '<button class="btn mini" data-act="up" title="Naik">↑</button>' +
+      '<button class="btn mini" data-act="down" title="Turun">↓</button>' +
+      '<button class="btn mini" data-act="del" title="Hapus">✕</button></span></div>' +
+      '<textarea class="f-p" rows="3">'+esc(p.t)+'</textarea>' +
+      '<div class="row2" style="margin-top:5px">' +
+      '<div class="field" style="margin:0"><label>Tampil sebelum soal ke-</label><input type="number" class="f-ppos" min="1" value="'+(p.pos+1)+'"></div>' +
+      '<div class="field" style="margin:0"><label>Perataan teks</label><select class="f-palign">' +
+      '<option value="left"'+(p.align==="left"?" selected":"")+'>Rata kiri</option>' +
+      '<option value="center"'+(p.align==="center"?" selected":"")+'>Tengah</option>' +
+      '<option value="justify"'+(p.align==="justify"?" selected":"")+'>Rata kanan-kiri</option>' +
+      '</select></div></div>' +
+      '<div class="row2" style="margin-top:5px">' +
+      '<div class="field" style="margin:0"><label>Jarak kiri kotak (cm)</label><input type="number" step="0.1" min="0" class="f-ppl" value="'+p.padL+'"></div>' +
+      '<div class="field" style="margin:0"><label>Jarak kanan kotak (cm)</label><input type="number" step="0.1" min="0" class="f-ppr" value="'+p.padR+'"></div>' +
+      '</div></div>';
+  }
+  if(!ps.length) html = '<div class="hintline">Belum ada teks cerita. Klik "+ Cerita" untuk menambah kotak bacaan.</div>';
+  wrap.innerHTML = html;
+}
+
 function soalHeaderBlock(){
   var s = state.soal;
+  var idf = s.idFields || {};
   var h = kopHTML(s.pakaiKop);
   h += '<div class="doc-title">'+esc(s.judul)+'</div>';
   h += '<div class="doc-sub">Mata Pelajaran : '+esc(s.mapel)+' &nbsp;&nbsp;|&nbsp;&nbsp; Kelas : '+ (ROMAN[String(s.kelas)] || esc(s.kelas)) +' &nbsp;&nbsp;|&nbsp;&nbsp; Waktu : '+esc(s.waktu)+' menit</div>';
-  h += '<table class="ident"><tr><td>Nama</td><td>: ....................................................</td><td>Kelas</td><td>: ..................</td></tr>' +
-       '<tr><td>No. Peserta</td><td>: ....................................................</td><td>Hari / Tanggal</td><td>: ..................</td></tr></table>';
+  function idCell(on, label, dots){ return on ? '<td>'+label+'</td><td>: '+dots+'</td>' : ''; }
+  var rows = "";
+  if(idf.nama !== false || idf.kelas !== false){
+    rows += '<tr>' + idCell(idf.nama !== false, "Nama", "....................................................") +
+            idCell(idf.kelas !== false, "Kelas", "..................") + '</tr>';
+  }
+  if(idf.no !== false || idf.tgl !== false){
+    rows += '<tr>' + idCell(idf.no !== false, "No. Peserta", "....................................................") +
+            idCell(idf.tgl !== false, "Hari / Tanggal", "..................") + '</tr>';
+  }
+  if(rows) h += '<table class="ident">'+rows+'</table>';
   h += '<div class="petunjuk"><b>Petunjuk:</b> '+esc(s.petunjuk)+'</div>';
   return makeBlock(h);
 }
 
 function questionBlock(q, i){
   var oi = (q.oimgs && q.oimgs.length >= 4) ? q.oimgs : ["", "", "", ""];
-  var h = '<div class="q-text"><b>'+(i+1)+'.</b> '+esc(q.t)+'</div>';
-  if(q.img) h += '<img class="q-img" src="'+q.img+'" alt="">';
+  var before = q.imgPos === "before";
+  var qimg = q.img || "";
+  var h = '<div class="q-text"><b>'+(i+1)+'.</b> ';
+  if(before && qimg) h += '<img class="q-img inline" src="'+qimg+'" alt="">';
+  h += esc(q.t);
+  if(!before && qimg) h += '<img class="q-img" src="'+qimg+'" alt="">';
+  h += '</div>';
   var one = state.soal.optLayout === "4row";
   function cell(letter, text, img){
-    return (one ? '<tr><td>' : '<td>') + letter + '. ' + esc(text) +
-      (img ? '<img class="opt-img" src="'+img+'" alt="">' : '') +
-      (one ? '</td></tr>' : '</td>');
+    var inner = letter + '. ';
+    if(before && img) inner += '<img class="opt-img before" src="'+img+'" alt="">';
+    inner += esc(text);
+    if(!before && img) inner += '<img class="opt-img" src="'+img+'" alt="">';
+    return (one ? '<tr><td>' : '<td>') + inner + (one ? '</td></tr>' : '</td>');
   }
   h += '<table class="opts'+(one?' one':'')+'">';
   if(one){
@@ -697,9 +796,16 @@ function answerSheetBlock(){
     rows += '<div class="ans-row"><span class="ans-num">'+(i+1)+'.</span>'+c+'</div>';
   }
   var cols = Math.min(4, Math.max(1, Math.ceil(n / 12)));
+  var idf = state.soal.idFields || {};
   var h = '<div class="ans-title">LEMBAR JAWABAN</div>';
-  h += '<table class="ident"><tr><td>Nama</td><td>: ..................................................</td><td>Kelas</td><td>: ................</td></tr>' +
-       '<tr><td>No. Peserta</td><td>: ..................................................</td><td>Jumlah Soal</td><td>: '+n+'</td></tr></table>';
+  var rowsId = "";
+  if(idf.nama !== false || idf.kelas !== false){
+    rowsId += '<tr>' + (idf.nama !== false ? '<td>Nama</td><td>: ..................................................</td>' : '') +
+              (idf.kelas !== false ? '<td>Kelas</td><td>: ................</td>' : '') + '</tr>';
+  }
+  rowsId += '<tr>' + (idf.no !== false ? '<td>No. Peserta</td><td>: ..................................................</td>' : '') +
+            '<td>Jumlah Soal</td><td>: '+n+'</td></tr>';
+  h += '<table class="ident">'+rowsId+'</table>';
   h += '<div class="ans-hint">Bubuhkan tanda silang (×) pada lingkaran huruf A, B, C, atau D untuk jawaban yang benar.</div>';
   h += '<div class="ans-grid" style="-webkit-column-count:'+cols+';column-count:'+cols+'">'+rows+'</div>';
   return makeBlock(h, true);
@@ -717,6 +823,12 @@ function kunciBlock(){
   h += '<div class="kunci-grid" style="-webkit-column-count:'+cols+';column-count:'+cols+'">'+items+'</div>';
   if(state.soal.guru) h += '<div class="k-note">Dibuat oleh: '+esc(state.soal.guru)+'</div>';
   return makeBlock(h, true);
+}
+
+function passageBlock(p){
+  var h = '<div class="passage" style="padding:3pt ' + (Number(p.padR)||0) + 'cm 3pt ' + (Number(p.padL)||0) + 'cm;text-align:' + p.align + '">' +
+    esc(p.t).replace(/\n/g,"<br>") + '</div>';
+  return makeBlock(h);
 }
 
 function isiHTML(text){
@@ -781,7 +893,19 @@ function suratBlocks(){
   return blocks;
 }
 
-function paginate(blocks, mount){
+function appendFooter(page, num, padL, padR, showFooter){
+  if(!showFooter) return;
+  var foot = document.createElement("div");
+  foot.className = "doc-footer";
+  foot.style.left = padL + "px";
+  foot.style.right = padR + "px";
+  var ft = state.soal.footer || "";
+  foot.innerHTML = (ft ? '<span>'+esc(ft)+'</span>' : '') + '<span class="fnum">'+num+'</span>';
+  if(!ft) foot.style.justifyContent = "center";
+  page.appendChild(foot);
+}
+
+function paginate(blocks, mount, twoCol){
   var m = cfg.margin;
   var pageW = 210 * MM, pageH = 297 * MM;
   var CM = 37.795275591;
@@ -789,31 +913,53 @@ function paginate(blocks, mount){
   var padL = (Number(m.kiri)||0) * CM, padR = (Number(m.kanan)||0) * CM;
   var innerW = pageW - padL - padR;
   var innerH = (pageH - padT - padB) * 0.985;
+  var colW = twoCol ? (innerW - 24) / 2 : innerW;
 
-  var meas = document.getElementById("measurer");
-  meas.style.width = innerW + "px";
-  meas.style.font = "11pt 'Times New Roman',Times,serif";
-  meas.style.lineHeight = "1.45";
-
-  var heights = blocks.map(function(b){
+  var heights = blocks.map(function(b, bi){
+    var meas = document.getElementById("measurer");
+    meas.style.width = (twoCol && !b.classList.contains("force") && bi !== 0 ? colW : innerW) + "px";
+    meas.style.font = "11pt 'Times New Roman',Times,serif";
+    meas.style.lineHeight = "1.45";
     meas.appendChild(b);
     var h = b.offsetHeight;
     meas.removeChild(b);
     return h;
   });
 
-  var pages = [], cur = [], curH = 0;
-  for(var i = 0; i < blocks.length; i++){
-    var force = blocks[i].classList.contains("force");
-    if(force && cur.length){ pages.push(cur); cur = []; curH = 0; }
-    if(cur.length && curH + heights[i] > innerH){ pages.push(cur); cur = []; curH = 0; }
-    cur.push(blocks[i]); curH += heights[i];
-    if(force){ pages.push(cur); cur = []; curH = 0; }
+  var pages = [];
+  if(!twoCol){
+    var cur = [], curH = 0;
+    for(var i = 0; i < blocks.length; i++){
+      var force = blocks[i].classList.contains("force");
+      if(force && cur.length){ pages.push(cur); cur = []; curH = 0; }
+      if(cur.length && curH + heights[i] > innerH){ pages.push(cur); cur = []; curH = 0; }
+      cur.push(blocks[i]); curH += heights[i];
+      if(force){ pages.push(cur); cur = []; curH = 0; }
+    }
+    if(cur.length) pages.push(cur);
+  } else {
+    var hdr = blocks.length ? blocks[0] : null;
+    var cols = [[], []], colH = [0, 0], ci = 0;
+    var cap = blocks.length ? Math.max(80, innerH - heights[0]) : innerH;
+    for(var j = 1; j < blocks.length; j++){
+      var force2 = blocks[j].classList.contains("force");
+      if(force2){
+        if(hdr || cols[0].length || cols[1].length) pages.push({ hdr: hdr, cols: cols, full: false });
+        pages.push({ hdr: null, cols: [[blocks[j]], []], full: true });
+        hdr = null; cols = [[], []]; colH = [0, 0]; ci = 0; cap = innerH;
+        continue;
+      }
+      if(colH[ci] + heights[j] > cap){
+        if(ci === 0 && colH[1] + heights[j] <= cap){ ci = 1; }
+        else { pages.push({ hdr: hdr, cols: cols, full: false }); hdr = null; cols = [[], []]; colH = [0, 0]; ci = 0; cap = innerH; }
+      }
+      cols[ci].push(blocks[j]); colH[ci] += heights[j];
+    }
+    if(hdr || cols[0].length || cols[1].length) pages.push({ hdr: hdr, cols: cols, full: false });
   }
-  if(cur.length) pages.push(cur);
 
   mount.innerHTML = "";
-  pages.forEach(function(pg){
+  pages.forEach(function(pg, pi){
     var slot = document.createElement("div");
     slot.className = "page-slot";
     slot.style.width = (pageW * zoom) + "px";
@@ -822,7 +968,28 @@ function paginate(blocks, mount){
     page.className = "page";
     page.style.padding = padT + "px " + padR + "px " + padB + "px " + padL + "px";
     page.style.transform = "scale(" + zoom + ")";
-    pg.forEach(function(b){ page.appendChild(b); });
+    if(twoCol){
+      if(pg.full){
+        pg.cols[0].forEach(function(b){ page.appendChild(b); });
+      } else {
+        if(pg.hdr) page.appendChild(pg.hdr);
+        if(pg.cols[0].length || pg.cols[1].length){
+          var flow = document.createElement("div");
+          flow.className = "flow2";
+          pg.cols.forEach(function(col){
+            var cd = document.createElement("div");
+            cd.className = "col2";
+            cd.style.width = colW + "px";
+            col.forEach(function(b){ cd.appendChild(b); });
+            flow.appendChild(cd);
+          });
+          page.appendChild(flow);
+        }
+      }
+    } else {
+      pg.forEach(function(b){ page.appendChild(b); });
+    }
+    appendFooter(page, pi + 1, padL, padR, mount.id === "pagesSoal");
     slot.appendChild(page);
     mount.appendChild(slot);
   });
@@ -840,12 +1007,20 @@ function paginate(blocks, mount){
 
 function renderActive(){
   var s = state.soal;
-  var blocks = [soalHeaderBlock()];
-  for(var i = 0; i < s.questions.length; i++) blocks.push(questionBlock(s.questions[i], i));
-  if(s.lembarJawaban && s.questions.length) blocks.push(answerSheetBlock());
-  if(s.kunci && s.questions.length) blocks.push(kunciBlock());
-  paginate(blocks, document.getElementById("pagesSoal"));
-  paginate(suratBlocks(), document.getElementById("pagesSurat"));
+  var header = [soalHeaderBlock()];
+  var flow = [];
+  var ps = s.passages || [];
+  var n = s.questions.length;
+  for(var i = 0; i <= n; i++){
+    for(var j = 0; j < ps.length; j++){
+      if(ps[j].pos === i) flow.push(passageBlock(ps[j]));
+    }
+    if(i < n) flow.push(questionBlock(s.questions[i], i));
+  }
+  if(s.lembarJawaban && n) flow.push(answerSheetBlock());
+  if(s.kunci && n) flow.push(kunciBlock());
+  paginate(header.concat(flow), document.getElementById("pagesSoal"), s.qCols === 2);
+  paginate(suratBlocks(), document.getElementById("pagesSurat"), false);
 }
 
 function fillPrintMount(){
@@ -971,7 +1146,7 @@ function bindEvents(){
   document.getElementById("btnZoomOut").addEventListener("click", function(){ setZoom(zoom - 0.1); });
 
   document.getElementById("btnAddQ").addEventListener("click", function(){
-    state.soal.questions.push({ t: "", opts: ["", "", "", ""], oimgs: ["", "", "", ""], img: "", key: null });
+    state.soal.questions.push({ t: "", opts: ["", "", "", ""], oimgs: ["", "", "", ""], img: "", imgPos: "after", key: null });
     renderQList(); renderActive(); scheduleSave();
     var cards = document.querySelectorAll(".qcard");
     if(cards.length) cards[cards.length-1].querySelector(".f-q").focus();
@@ -999,6 +1174,44 @@ function bindEvents(){
       q.key = (q.key === parseInt(e.target.dataset.o,10)) ? null : parseInt(e.target.dataset.o,10);
       renderQList(); renderActive(); scheduleSave();
     }
+    if(e.target.classList.contains("f-ipos")){
+      q.imgPos = e.target.value;
+      renderActive(); scheduleSave();
+    }
+  });
+
+  var pList = document.getElementById("pList");
+  pList.addEventListener("input", function(e){
+    var card = e.target.closest(".qcard");
+    if(!card) return;
+    var pi = parseInt(card.dataset.pi, 10);
+    var p = state.soal.passages[pi];
+    if(!p) return;
+    if(e.target.classList.contains("f-p")) p.t = e.target.value;
+    else if(e.target.classList.contains("f-ppos")) p.pos = Math.max(0, (parseInt(e.target.value,10) || 1) - 1);
+    else if(e.target.classList.contains("f-palign")) p.align = e.target.value;
+    else if(e.target.classList.contains("f-ppl")) p.padL = Number(e.target.value) || 0;
+    else if(e.target.classList.contains("f-ppr")) p.padR = Number(e.target.value) || 0;
+    renderActive(); scheduleSave();
+  });
+  pList.addEventListener("click", function(e){
+    var btn = e.target.closest("button[data-act]");
+    if(!btn) return;
+    var card = btn.closest(".qcard");
+    var pi = parseInt(card.dataset.pi, 10);
+    var ps = state.soal.passages;
+    var act = btn.dataset.act;
+    if(act === "del"){ if(confirm("Hapus teks cerita " + (pi+1) + "?")) ps.splice(pi, 1); }
+    else if(act === "up" && pi > 0){ var a = ps[pi]; ps[pi] = ps[pi-1]; ps[pi-1] = a; }
+    else if(act === "down" && pi < ps.length - 1){ var b = ps[pi]; ps[pi] = ps[pi+1]; ps[pi+1] = b; }
+    else return;
+    renderPList(); renderActive(); scheduleSave();
+  });
+  document.getElementById("btnAddPassage").addEventListener("click", function(){
+    state.soal.passages.push({ t: "", pos: state.soal.questions.length, align: "justify", padL: 0.4, padR: 0.4 });
+    renderPList(); renderActive(); scheduleSave();
+    var cards = document.querySelectorAll("#pList .qcard");
+    if(cards.length) cards[cards.length-1].querySelector(".f-p").focus();
   });
   qList.addEventListener("click", function(e){
     var btn = e.target.closest("button[data-act]");
@@ -1043,6 +1256,12 @@ function bindEvents(){
   bindField("so-guru", function(t){ state.soal.guru = t.value; });
   bindField("so-petunjuk", function(t){ state.soal.petunjuk = t.value; });
   bindField("so-layout", function(t){ state.soal.optLayout = t.value; });
+  bindField("so-qcols", function(t){ state.soal.qCols = parseInt(t.value,10) || 1; });
+  bindField("so-footer", function(t){ state.soal.footer = t.value; });
+  bindField("id-nama", function(t){ state.soal.idFields.nama = t.checked; });
+  bindField("id-no", function(t){ state.soal.idFields.no = t.checked; });
+  bindField("id-kelas", function(t){ state.soal.idFields.kelas = t.checked; });
+  bindField("id-tgl", function(t){ state.soal.idFields.tgl = t.checked; });
   bindField("so-kop", function(t){ state.soal.pakaiKop = t.checked; });
   bindField("so-lj", function(t){ state.soal.lembarJawaban = t.checked; });
   bindField("so-kunci", function(t){ state.soal.kunci = t.checked; });

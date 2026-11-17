@@ -31,9 +31,19 @@ FITUR
                  tampil langsung di samping kanan.
 * Tata letak pilihan bisa dipilih: 2 kolom (A B / C D)
                  atau 4 baris (A, B, C, D ke bawah).
+* Soal bisa ditata 1 kolom atau 2 kolom per halaman.
 * Gambar bisa ditambahkan pada soal maupun pada masing-
-  masing pilihan (tombol 🖼). Gambar besar otomatis
+  masing pilihan (tombol 🖼), dan posisinya bisa diatur
+  sebelum atau sesudah teks. Gambar besar otomatis
   dipadatkan agar file tetap ringan.
+* Teks cerita / bacaan (mis. soal cerita) ditampilkan dalam
+  kotak berbingkai: bisa disisipkan sebelum soal mana pun,
+  dengan jarak kiri/kanan kotak dan perataan teks yang
+  bisa diatur.
+* Baris identitas (Nama, No. Peserta, Kelas, Hari/Tanggal)
+  bisa dinyalakan/dimatikan satu per satu.
+* Footer naskah: teks footer + nomor halaman otomatis
+  (hanya angka) di setiap halaman.
 * Tab "Surat"  : membuat surat resmi sekolah (undangan,
                  pemberitahuan, dll.) dengan kop dan tanda tangan.
 * Lembar jawaban berbentuk LINGKARAN A B C D otomatis
