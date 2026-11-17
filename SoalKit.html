@@ -38,6 +38,8 @@ main{padding:10px}
 .field label{display:block;font-size:11.5px;color:#555;margin-bottom:3px;font-weight:600}
 .field input[type=text],.field input[type=number],.field input[type=date],.field select,.field textarea{width:100%;padding:6px 8px;border:1px solid #c5cad1;border-radius:4px;font:inherit;font-size:13px;background:#fff}
 .field textarea{resize:vertical;line-height:1.4}
+.field .rich{width:100%;padding:6px 8px;border:1px solid #c5cad1;border-radius:4px;font:inherit;font-size:13px;background:#fff;min-height:21px;outline:none;word-break:break-word}
+.field .rich:focus{border-color:#7aa7d8}
 .row2{display:flex;gap:8px}.row2>.field{flex:1;min-width:0}
 .checks{display:flex;gap:14px;flex-wrap:wrap;margin:6px 0 10px;font-size:12.5px}
 .checks label{display:flex;align-items:center;gap:5px;cursor:pointer}
@@ -71,7 +73,9 @@ main{padding:10px}
 .kop-nama{font-weight:bold;font-size:14pt;text-transform:uppercase;letter-spacing:.5pt}
 .kop-alamat{font-size:9pt;line-height:1.3}
 .kop-line{border-bottom:3pt double #000;margin-top:3pt}
-.doc-title{text-align:center;font-weight:bold;font-size:12pt;text-decoration:underline;margin-top:8pt;letter-spacing:.5pt}
+.doc-title{text-align:center;font-size:12pt;margin-top:8pt;letter-spacing:.5pt}
+.doc-title.plain{font-weight:bold;text-decoration:underline}
+.doc-title div{display:block}
 .doc-sub{text-align:center;font-size:10.5pt;margin-top:2pt}
 table.ident{border-collapse:collapse;margin-top:8pt;font-size:11pt}
 table.ident td{padding:1pt 8pt 1pt 0;vertical-align:top}
@@ -169,7 +173,13 @@ table.ttd td{vertical-align:top}
 <main>
   <section class="tabpane active" id="pane-soal">
     <div class="editor">
-      <div class="field"><label>Judul Naskah</label><input type="text" id="so-judul"></div>
+      <div class="richbar" style="margin-bottom:2px"><span style="font-size:11px;color:#777">Format judul:</span>
+        <button class="btn mini" data-cmd="bold" title="Tebal (Ctrl+B)"><b>B</b></button>
+        <button class="btn mini" data-cmd="italic" title="Miring (Ctrl+I)"><i>I</i></button>
+        <button class="btn mini" data-cmd="underline" title="Garis bawah (Ctrl+U)"><u>U</u></button>
+        <span class="hintline" style="margin:0">blok teksnya dulu, lalu klik B / I / U — tekan Enter untuk baris baru</span>
+      </div>
+      <div class="field"><label>Judul Naskah</label><div id="so-judul" class="rich" contenteditable="true" data-ph="Judul naskah..."></div></div>
       <div class="row2">
         <div class="field"><label>Mata Pelajaran</label><input type="text" id="so-mapel"></div>
         <div class="field"><label>Kelas</label>
@@ -395,6 +405,12 @@ function cleanRich(html){
     }
   }
   return d.innerHTML;
+}
+
+function richToText(html){
+  var d = document.createElement("div");
+  d.innerHTML = String(html || "");
+  return (d.textContent || "").replace(/\s+/g, " ").trim();
 }
 
 function imgDim(w){
@@ -651,7 +667,7 @@ function scheduleRender(){
 
 function buildUI(){
   var s = state.soal, u = state.surat, c = cfg;
-  document.getElementById("so-judul").value = s.judul;
+  document.getElementById("so-judul").innerHTML = cleanRich(s.judul);
   document.getElementById("so-mapel").value = s.mapel;
   document.getElementById("so-kelas").value = String(s.kelas);
   document.getElementById("so-waktu").value = s.waktu;
@@ -796,7 +812,8 @@ function soalHeaderBlock(){
   var s = state.soal;
   var idf = s.idFields || {};
   var h = kopHTML(s.pakaiKop);
-  h += '<div class="doc-title">'+esc(s.judul)+'</div>';
+  var judulHasFmt = /<(b|strong|i|em|u)\b/i.test(String(s.judul || ""));
+  h += '<div class="doc-title'+(judulHasFmt ? "" : " plain")+'">'+cleanRich(s.judul)+'</div>';
   h += '<div class="doc-sub">Mata Pelajaran : '+esc(s.mapel)+' &nbsp;&nbsp;|&nbsp;&nbsp; Kelas : '+ (ROMAN[String(s.kelas)] || esc(s.kelas)) +' &nbsp;&nbsp;|&nbsp;&nbsp; Waktu : '+esc(s.waktu)+' menit</div>';
   function idCell(on, label, dots){ return on ? '<td>'+label+'</td><td>: '+dots+'</td>' : ''; }
   var rows = "";
@@ -1095,7 +1112,7 @@ function doPrint(){
   var n = fillPrintMount();
   if(!n) return;
   var oldTitle = document.title;
-  if(activeTab === "soal") document.title = state.soal.judul + " - " + state.soal.mapel;
+  if(activeTab === "soal") document.title = richToText(state.soal.judul) + " - " + state.soal.mapel;
   else document.title = "Surat " + (state.surat.hal || "");
   window.print();
   setTimeout(function(){ document.title = oldTitle; }, 500);
@@ -1249,6 +1266,11 @@ function bindEvents(){
 
   var lastRich = null;
   function syncRichField(el){
+    if(el.id === "so-judul"){
+      state.soal.judul = cleanRich(el.innerHTML);
+      renderActive(); scheduleSave();
+      return;
+    }
     var card = el.closest(".qcard");
     if(!card) return;
     var qi = parseInt(card.dataset.i, 10);
@@ -1258,21 +1280,23 @@ function bindEvents(){
     else if(el.classList.contains("f-opt")) qq.opts[parseInt(el.dataset.o,10)] = cleanRich(el.innerHTML);
     renderActive(); scheduleSave();
   }
-  qList.addEventListener("focusin", function(e){
+  document.addEventListener("focusin", function(e){
     if(e.target.classList && e.target.classList.contains("rich")) lastRich = e.target;
   });
-  var richbar = document.getElementById("richbar");
-  richbar.addEventListener("mousedown", function(e){
-    if(e.target.closest("button")) e.preventDefault();
-  });
-  richbar.addEventListener("click", function(e){
-    var btn = e.target.closest("button[data-cmd]");
-    if(!btn) return;
-    if(!document.execCommand){ alert("Browser ini tidak mendukung format teks. Gunakan Chrome/Firefox."); return; }
-    if(!lastRich){ alert("Klik dulu ke teks soal atau pilihan yang ingin diformat, lalu klik tombol format."); return; }
-    document.execCommand(btn.dataset.cmd, false, null);
-    syncRichField(lastRich);
-  });
+  var richbars = document.querySelectorAll(".richbar");
+  for(var rb = 0; rb < richbars.length; rb++){
+    richbars[rb].addEventListener("mousedown", function(e){
+      if(e.target.closest("button")) e.preventDefault();
+    });
+    richbars[rb].addEventListener("click", function(e){
+      var btn = e.target.closest("button[data-cmd]");
+      if(!btn) return;
+      if(!document.execCommand){ alert("Browser ini tidak mendukung format teks. Gunakan Chrome/Firefox."); return; }
+      if(!lastRich){ alert("Klik dulu ke teks yang ingin diformat (judul, soal, atau pilihan), lalu klik tombol format."); return; }
+      document.execCommand(btn.dataset.cmd, false, null);
+      syncRichField(lastRich);
+    });
+  }
 
   var pList = document.getElementById("pList");
   pList.addEventListener("input", function(e){
@@ -1349,7 +1373,10 @@ function bindEvents(){
     });
   }
 
-  bindField("so-judul", function(t){ state.soal.judul = t.value; });
+  document.getElementById("so-judul").addEventListener("input", function(e){
+    state.soal.judul = cleanRich(e.target.innerHTML);
+    renderActive(); scheduleSave();
+  });
   bindField("so-mapel", function(t){ state.soal.mapel = t.value; });
   bindField("so-kelas", function(t){ state.soal.kelas = t.value; });
   bindField("so-waktu", function(t){ state.soal.waktu = t.value; });

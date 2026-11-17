@@ -48,6 +48,10 @@ FITUR
 * Teks soal dan pilihan bisa diformat Tebal (B), Miring (I),
   dan Garis Bawah (U): blok teksnya lalu klik tombol
   B / I / U, atau langsung pakai Ctrl+B / Ctrl+I / Ctrl+U.
+* Judul Naskah juga bisa diformat Tebal/Miring/Garis Bawah
+  dan bisa multi-baris: tekan Enter di dalam kotak judul
+  untuk pindah ke baris berikutnya (judul tidak lagi
+  memanjang satu baris saja).
 * Teks cerita / bacaan (mis. soal cerita) ditampilkan dalam
   kotak berbingkai: bisa disisipkan sebelum soal mana pun,
   dengan jarak kiri/kanan kotak dan perataan teks yang
