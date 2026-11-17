@@ -82,10 +82,9 @@ table.opts{width:100%;border-collapse:collapse;margin-top:1pt}
 table.opts td{width:50%;vertical-align:top;padding:1pt 8pt 1pt 0}
 table.opts.one td{width:100%;padding:1pt 0}
 .q-img{display:block;max-width:70%;max-height:3.2cm;margin:3pt 0 1pt}
-.q-img.inline{display:inline-block;max-height:2cm;max-width:60%;vertical-align:middle;margin:0 4pt}
 .opt-img{display:inline-block;max-width:4.5cm;max-height:1.8cm;vertical-align:middle;margin:1pt 0 1pt 4pt}
-.opt-img.before{margin:0 4pt 0 0}
 .opt-img.block{display:block;margin:2pt 0 0}
+.q-text img:not(.q-img),.opts img:not(.opt-img){display:inline-block;max-height:2.5cm;max-width:50%;vertical-align:middle;margin:0 2pt}
 .mini-lbl{font-size:11px;color:#666;display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
 .mini-lbl input{width:52px;padding:3px 5px;border:1px solid #c5cad1;border-radius:4px;font:inherit;font-size:12px}
 .mini-lbl select,.qimgbar select{padding:3px 5px;border:1px solid #c5cad1;border-radius:4px;font:inherit;font-size:11.5px;background:#fff}
@@ -98,7 +97,7 @@ table.opts.one td{width:100%;padding:1pt 0}
 .passage{border:1pt solid #000;line-height:1.4}
 .flow2{display:flex;justify-content:space-between}
 .col2{min-width:0}
-.doc-footer{position:absolute;bottom:0.35cm;display:flex;justify-content:space-between;align-items:baseline;font-size:9pt}
+.doc-footer{position:absolute;display:flex;justify-content:space-between;align-items:baseline;font-size:9pt}
 .qimgbar{display:flex;align-items:center;gap:5px;margin:3px 0 7px;flex-wrap:wrap}
 .qimgbar img,.optthumb{max-height:34px;max-width:80px;border:1px solid #ccc;border-radius:3px;background:#fff;padding:1px}
 #toast{position:fixed;right:14px;bottom:14px;background:#1a3c6e;color:#fff;padding:10px 16px;border-radius:6px;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.35);display:none;z-index:99}
@@ -200,7 +199,10 @@ table.ttd td{vertical-align:top}
           </select>
         </div>
       </div>
-      <div class="field"><label>Teks Footer (kosongkan bila hanya ingin nomor halaman)</label><input type="text" id="so-footer"></div>
+      <div class="row2">
+        <div class="field"><label>Teks Footer (kosongkan = hanya nomor halaman)</label><input type="text" id="so-footer"></div>
+        <div class="field"><label>Jarak footer dari bawah (cm)</label><input type="number" id="so-footerpos" step="0.1" min="0.2" max="4"></div>
+      </div>
       <div class="checks">
         <label><input type="checkbox" id="so-kop"> Kop surat</label>
         <label><input type="checkbox" id="so-lj"> Lembar jawaban</label>
@@ -343,7 +345,7 @@ function defaults(){
       judul: "ULANGAN HARIAN", mapel: "Matematika", kelas: "7", waktu: 60, guru: "",
       petunjuk: "Berilah tanda silang (×) pada huruf A, B, C, atau D di depan jawaban yang paling benar!",
       pakaiKop: true, lembarJawaban: true, kunci: false, optLayout: "2col",
-      qCols: 1, footer: "",
+      qCols: 1, footer: "", footerPos: 1,
       idFields: { nama: true, no: true, kelas: true, tgl: true },
       passages: [],
       questions: []
@@ -518,6 +520,7 @@ function normalizeData(){
   if(state.soal.optLayout !== "4row") state.soal.optLayout = "2col";
   if(state.soal.qCols !== 2) state.soal.qCols = 1;
   if(typeof state.soal.footer !== "string") state.soal.footer = "";
+  state.soal.footerPos = (Number(state.soal.footerPos) >= 0.2 && Number(state.soal.footerPos) <= 4) ? Number(state.soal.footerPos) : 1;
   var idf = state.soal.idFields;
   if(!idf || typeof idf !== "object" || Array.isArray(idf)) state.soal.idFields = { nama: true, no: true, kelas: true, tgl: true };
   var ps = state.soal.passages;
@@ -686,6 +689,7 @@ function buildUI(){
   document.getElementById("so-layout").value = s.optLayout || "2col";
   document.getElementById("so-qcols").value = String(s.qCols || 1);
   document.getElementById("so-footer").value = s.footer || "";
+  document.getElementById("so-footerpos").value = s.footerPos || 1;
   document.getElementById("id-nama").checked = s.idFields.nama !== false;
   document.getElementById("id-no").checked = s.idFields.no !== false;
   document.getElementById("id-kelas").checked = s.idFields.kelas !== false;
@@ -707,7 +711,8 @@ function renderQList(){
       '<button class="btn mini" data-act="dup" title="Duplikat">⧉</button>' +
       '<button class="btn mini" data-act="del" title="Hapus">✕</button></span></div>' +
       '<div class="f-q rich" contenteditable="true" data-ph="Tulis soal di sini...">'+cleanRich(q.t)+'</div>' +
-      '<div class="qimgbar"><button class="btn mini" data-act="imgq" title="Tambah gambar pada soal">🖼 Gambar Soal</button>' +
+      '<div class="qimgbar"><button class="btn mini" data-act="imgq" title="Gambar terpisah di atas/bawah teks soal">🖼 Gambar Soal</button>' +
+      '<button class="btn mini" data-act="imginline" title="Sisipkan gambar di tengah kalimat (di posisi kursor)">🖼 Sisip di Teks</button>' +
       (q.img ? '<img src="'+q.img+'" alt=""><button class="btn mini" data-act="imgqdel" title="Hapus gambar soal">✕</button>' : '') +
       '<select class="f-ipos" title="Posisi gambar soal & pilihan"><option value="after"'+(q.imgPos!=="before"?" selected":"")+'>Sesudah teks</option><option value="before"'+(q.imgPos==="before"?" selected":"")+'>Sebelum teks</option></select>' +
       '<label class="mini-lbl">Lebar <input type="number" class="f-qw" step="0.1" min="0" value="'+(Number(q.imgW)||0)+'" title="Lebar gambar soal (cm), 0 = otomatis"> cm</label>' +
@@ -812,16 +817,16 @@ function questionBlock(q, i){
   var oi = (q.oimgs && q.oimgs.length >= 4) ? q.oimgs : ["", "", "", ""];
   var before = q.imgPos === "before";
   var qimg = q.img || "";
-  var h = '<div class="q-text"><b>'+(i+1)+'.</b> ';
-  if(before && qimg) h += '<img class="q-img inline" style="'+imgDim(q.imgW)+'" src="'+qimg+'" alt="">';
-  h += cleanRich(q.t);
+  var h = '<div class="q-text">';
+  if(before && qimg) h += '<img class="q-img" style="'+imgDim(q.imgW)+imgAlignStyle(q.imgAlign)+'" src="'+qimg+'" alt="">';
+  h += '<b>'+(i+1)+'.</b> ' + cleanRich(q.t);
   if(!before && qimg) h += '<img class="q-img" style="'+imgDim(q.imgW)+imgAlignStyle(q.imgAlign)+'" src="'+qimg+'" alt="">';
   h += '</div>';
   var one = state.soal.optLayout === "4row";
   function cell(letter, text, img){
-    var inner = letter + '. ';
-    if(before && img) inner += '<img class="opt-img before" style="'+imgDim(q.oimgW)+'" src="'+img+'" alt="">';
-    inner += cleanRich(text);
+    var inner = "";
+    if(before && img) inner += '<img class="opt-img block" style="'+imgDim(q.oimgW)+imgAlignStyle(q.oimgAlign)+'" src="'+img+'" alt="">';
+    inner += letter + '. ' + cleanRich(text);
     if(!before && img) inner += '<img class="opt-img block" style="'+imgDim(q.oimgW)+imgAlignStyle(q.oimgAlign)+'" src="'+img+'" alt="">';
     return (one ? '<tr><td>' : '<td>') + inner + (one ? '</td></tr>' : '</td>');
   }
@@ -951,6 +956,7 @@ function appendFooter(page, num, padL, padR, showFooter){
   foot.style.left = padL + "px";
   foot.style.right = padR + "px";
   var ft = state.soal.footer || "";
+  foot.style.bottom = (Number(state.soal.footerPos) || 1) + "cm";
   foot.innerHTML = (ft ? '<span>'+esc(ft)+'</span>' : '') + '<span class="fnum">'+num+'</span>';
   if(!ft) foot.style.justifyContent = "center";
   page.appendChild(foot);
@@ -1242,6 +1248,16 @@ function bindEvents(){
   });
 
   var lastRich = null;
+  function syncRichField(el){
+    var card = el.closest(".qcard");
+    if(!card) return;
+    var qi = parseInt(card.dataset.i, 10);
+    var qq = state.soal.questions[qi];
+    if(!qq) return;
+    if(el.classList.contains("f-q")) qq.t = cleanRich(el.innerHTML);
+    else if(el.classList.contains("f-opt")) qq.opts[parseInt(el.dataset.o,10)] = cleanRich(el.innerHTML);
+    renderActive(); scheduleSave();
+  }
   qList.addEventListener("focusin", function(e){
     if(e.target.classList && e.target.classList.contains("rich")) lastRich = e.target;
   });
@@ -1255,16 +1271,7 @@ function bindEvents(){
     if(!document.execCommand){ alert("Browser ini tidak mendukung format teks. Gunakan Chrome/Firefox."); return; }
     if(!lastRich){ alert("Klik dulu ke teks soal atau pilihan yang ingin diformat, lalu klik tombol format."); return; }
     document.execCommand(btn.dataset.cmd, false, null);
-    var card = lastRich.closest(".qcard");
-    if(card){
-      var qi = parseInt(card.dataset.i, 10);
-      var qq = state.soal.questions[qi];
-      if(qq){
-        if(lastRich.classList.contains("f-q")) qq.t = cleanRich(lastRich.innerHTML);
-        else if(lastRich.classList.contains("f-opt")) qq.opts[parseInt(lastRich.dataset.o,10)] = cleanRich(lastRich.innerHTML);
-        renderActive(); scheduleSave();
-      }
-    }
+    syncRichField(lastRich);
   });
 
   var pList = document.getElementById("pList");
@@ -1308,6 +1315,12 @@ function bindEvents(){
     var qs = state.soal.questions;
     var act = btn.dataset.act;
     if(act === "imgq"){ pendingImg = { kind: "q", i: i }; document.getElementById("imgFile").click(); return; }
+    if(act === "imginline"){
+      if(!lastRich || !document.execCommand){ alert("Klik dulu di dalam kotak teks soal atau pilihan, tepat pada posisi yang diinginkan, lalu klik tombol ini lagi."); return; }
+      pendingImg = { kind: "inline" };
+      document.getElementById("imgFile").click();
+      return;
+    }
     if(act === "imgqdel"){ qs[i].img = ""; renderQList(); renderActive(); scheduleSave(); return; }
     if(act === "imgopt"){ pendingImg = { kind: "opt", i: i, o: parseInt(btn.dataset.o, 10) }; document.getElementById("imgFile").click(); return; }
     if(act === "optimgdel"){ qs[i].oimgs[parseInt(btn.dataset.o, 10)] = ""; renderQList(); renderActive(); scheduleSave(); return; }
@@ -1345,6 +1358,7 @@ function bindEvents(){
   bindField("so-layout", function(t){ state.soal.optLayout = t.value; });
   bindField("so-qcols", function(t){ state.soal.qCols = parseInt(t.value,10) || 1; });
   bindField("so-footer", function(t){ state.soal.footer = t.value; });
+  bindField("so-footerpos", function(t){ state.soal.footerPos = Number(t.value) || 1; });
   bindField("id-nama", function(t){ state.soal.idFields.nama = t.checked; });
   bindField("id-no", function(t){ state.soal.idFields.no = t.checked; });
   bindField("id-kelas", function(t){ state.soal.idFields.kelas = t.checked; });
@@ -1395,6 +1409,10 @@ function bindEvents(){
       } else if(pendingImg.kind === "opt"){
         state.soal.questions[pendingImg.i].oimgs[pendingImg.o] = dataUrl;
         renderQList();
+      } else if(pendingImg.kind === "inline"){
+        lastRich.focus();
+        document.execCommand("insertImage", false, dataUrl);
+        syncRichField(lastRich);
       }
       renderActive();
       scheduleSave();

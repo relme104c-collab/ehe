@@ -34,8 +34,20 @@ FITUR
 * Soal bisa ditata 1 kolom atau 2 kolom per halaman.
 * Gambar bisa ditambahkan pada soal maupun pada masing-
   masing pilihan (tombol 🖼), dan posisinya bisa diatur
-  sebelum atau sesudah teks. Gambar besar otomatis
-  dipadatkan agar file tetap ringan.
+  sebelum atau sesudah teks. Ukuran gambar bisa diatur
+  sendiri (lebar dalam cm) serta perataannya kiri/tengah/
+  kanan — perataan ini berlaku di kedua mode posisi
+  (sebelum maupun sesudah teks) karena gambar selalu
+  tampil utuh satu baris penuh, tidak lagi berdampingan
+  dengan teks sehingga rapi dilihat.
+* Tombol "Sisip di Teks" (🖼): menyisipkan gambar di
+  tengah kalimat, tepat di posisi kursor di dalam teks
+  soal/pilihan (klik dulu di dalam kotak teks pada posisi
+  yang diinginkan, lalu klik tombolnya).
+  Gambar besar otomatis dipadatkan agar file tetap ringan.
+* Teks soal dan pilihan bisa diformat Tebal (B), Miring (I),
+  dan Garis Bawah (U): blok teksnya lalu klik tombol
+  B / I / U, atau langsung pakai Ctrl+B / Ctrl+I / Ctrl+U.
 * Teks cerita / bacaan (mis. soal cerita) ditampilkan dalam
   kotak berbingkai: bisa disisipkan sebelum soal mana pun,
   dengan jarak kiri/kanan kotak dan perataan teks yang
@@ -43,7 +55,8 @@ FITUR
 * Baris identitas (Nama, No. Peserta, Kelas, Hari/Tanggal)
   bisa dinyalakan/dimatikan satu per satu.
 * Footer naskah: teks footer + nomor halaman otomatis
-  (hanya angka) di setiap halaman.
+  (hanya angka) di setiap halaman. Jarak footer dari tepi
+  bawah halaman juga bisa diatur (dalam cm, default 1 cm).
 * Tab "Surat"  : membuat surat resmi sekolah (undangan,
                  pemberitahuan, dll.) dengan kop dan tanda tangan.
 * Lembar jawaban berbentuk LINGKARAN A B C D otomatis
