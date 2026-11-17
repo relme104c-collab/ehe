@@ -80,6 +80,12 @@ table.ident td{padding:1pt 8pt 1pt 0;vertical-align:top}
 .q-text b{padding-right:2pt}
 table.opts{width:100%;border-collapse:collapse;margin-top:1pt}
 table.opts td{width:50%;vertical-align:top;padding:1pt 8pt 1pt 0}
+table.opts.one td{width:100%;padding:1pt 0}
+.q-img{display:block;max-width:70%;max-height:3.2cm;margin:3pt auto 1pt}
+.opt-img{display:inline-block;max-width:4.5cm;max-height:1.8cm;vertical-align:middle;margin:1pt 0 1pt 4pt}
+.qimgbar{display:flex;align-items:center;gap:5px;margin:3px 0 7px;flex-wrap:wrap}
+.qimgbar img,.optthumb{max-height:34px;max-width:80px;border:1px solid #ccc;border-radius:3px;background:#fff;padding:1px}
+#toast{position:fixed;right:14px;bottom:14px;background:#1a3c6e;color:#fff;padding:10px 16px;border-radius:6px;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.35);display:none;z-index:99}
 
 .ans-title{text-align:center;font-weight:bold;font-size:12pt;text-decoration:underline;letter-spacing:1pt;margin-bottom:8pt}
 .ans-hint{font-size:9.5pt;font-style:italic;margin-bottom:8pt}
@@ -131,10 +137,11 @@ table.ttd td{vertical-align:top}
   </div>
   <div class="bar-actions">
     <button class="btn primary" id="btnPrint">Cetak / PDF</button>
-    <button class="btn" id="btnEksporData">Ekspor Data</button>
+    <button class="btn" id="btnSimpanFolder">💾 Simpan ke Folder</button>
     <button class="btn" id="btnEksporConfig">Ekspor Config</button>
     <button class="btn" id="btnImpor">Impor</button>
     <input type="file" id="fileImpor" accept=".js,.json" style="display:none">
+    <input type="file" id="imgFile" accept="image/*" style="display:none">
     <div class="zoomctl">
       <button id="btnZoomOut" title="Perkecil">−</button>
       <span id="zoomLabel">80%</span>
@@ -163,6 +170,12 @@ table.ttd td{vertical-align:top}
         <div class="field"><label>Guru / Pembuat</label><input type="text" id="so-guru"></div>
       </div>
       <div class="field"><label>Petunjuk Pengerjaan</label><textarea id="so-petunjuk" rows="2"></textarea></div>
+      <div class="field"><label>Tata Letak Pilihan Jawaban</label>
+        <select id="so-layout">
+          <option value="2col">2 kolom — A B / C D berdampingan</option>
+          <option value="4row">4 baris — A, B, C, D ke bawah</option>
+        </select>
+      </div>
       <div class="checks">
         <label><input type="checkbox" id="so-kop"> Kop surat</label>
         <label><input type="checkbox" id="so-lj"> Lembar jawaban</label>
@@ -212,7 +225,7 @@ table.ttd td{vertical-align:top}
       <div class="field"><label>Kota (untuk tempat &amp; tanggal surat)</label><input type="text" id="st-kota"></div>
       <div class="field">
         <label>Gambar Kop Surat (logo + nama sekolah, format PNG/JPG)</label>
-        <span class="filelabel">Pilih Gambar Kop…<input type="file" id="st-kopfile" accept="image/*" style="display:none"></span>
+        <button class="btn" id="st-kopbtn" type="button">Pilih Gambar Kop…</button>
         <button class="btn mini" id="st-kophapus" style="margin-left:6px">Hapus Kop</button>
         <div class="koprev" id="st-koprev"></div>
       </div>
@@ -227,17 +240,25 @@ table.ttd td{vertical-align:top}
       <h3 style="margin:16px 0 10px;color:#1a3c6e">Penyimpanan Portable</h3>
       <div class="hintline" style="font-size:12px;color:#555">
         <b>config.js</b> (di folder aplikasi) menyimpan identitas sekolah, kop, dan margin — terpisah dari aplikasi.<br>
-        <b>data/data.js</b> menyimpan seluruh soal dan surat.<br>
-        Untuk memindahkan ke perangkat lain: klik <b>Ekspor Config</b> dan <b>Ekspor Data</b>, lalu timpa file lama di folder aplikasi pada perangkat tujuan.
+        <b>bank-soal/soal.js</b> menyimpan semua soal, <b>surat/surat.js</b> menyimpan semua surat.<br>
+        Klik <b>Hubungkan Folder Aplikasi</b> lalu pilih folder tempat SoalKit.html berada. Setelah itu tombol <b>Simpan ke Folder</b> menulis ketiga file tersebut langsung ke tempatnya.
       </div>
       <div style="margin-top:10px">
+        <button class="btn" id="btnPilihFolder">📁 Hubungkan Folder Aplikasi</button>
+        <button class="btn" id="st-simpan-sekarang">Simpan Sekarang</button>
+        <span id="folderName" style="font-size:12px;margin-left:6px;font-weight:600;color:#1a3c6e"></span>
+      </div>
+      <div class="checks" style="margin-top:8px">
+        <label><input type="checkbox" id="st-auto"> Simpan otomatis ke folder setiap ada perubahan</label>
+      </div>
+      <div style="margin-top:6px">
         <button class="btn" id="st-saveconfig">Unduh config.js</button>
-        <button class="btn" id="st-savedata">Unduh data/data.js</button>
       </div>
     </div>
   </section>
 </main>
 
+<div id="toast"></div>
 <div id="measurer"></div>
 <div id="printMount"></div>
 
@@ -254,7 +275,7 @@ var MM = 3.779527559;
 
 var cfg = null, state = null;
 var fileConfig = null, fileData = null;
-var filesLoaded = { config: false, data: false };
+var filesLoaded = { config: false, soal: false, surat: false, legacy: false };
 var activeTab = "soal";
 var zoom = 0.8;
 var renderTimer = null, saveTimer = null;
@@ -273,12 +294,13 @@ function defaults(){
       alamat: "Jl. Pendidikan No. 1, Kecamatan …, Kabupaten … | Telp. (021) 555-0123 | Email: sekolah@sekolah.id",
       kota: "Jakarta",
       kopImage: "",
-      margin: { atas: 2, bawah: 2, kiri: 2, kanan: 2 }
+      margin: { atas: 2, bawah: 2, kiri: 2, kanan: 2 },
+      autoSaveFolder: false
     },
     soal: {
       judul: "ULANGAN HARIAN", mapel: "Matematika", kelas: "7", waktu: 60, guru: "",
       petunjuk: "Berilah tanda silang (×) pada huruf A, B, C, atau D di depan jawaban yang paling benar!",
-      pakaiKop: true, lembarJawaban: true, kunci: false,
+      pakaiKop: true, lembarJawaban: true, kunci: false, optLayout: "2col",
       questions: []
     },
     surat: {
@@ -339,6 +361,7 @@ function init(){
     }
   }
   cfg = state.config;
+  normalizeData();
   buildUI();
   bindEvents();
   renderStatus();
@@ -347,21 +370,182 @@ function init(){
 
 function renderStatus(){
   var el = document.getElementById("statusLine");
-  var hasLs = !!localStorage.getItem(LS_KEY);
-  el.innerHTML = "Portable: <b class='"+(filesLoaded.config?"ok":"no")+"'>config.js " + (filesLoaded.config ? "terbaca" : "tidak ditemukan (pakai bawaan)") + "</b> · " +
-    "<b class='"+(filesLoaded.data?"ok":"no")+"'>data/data.js " + (filesLoaded.data ? "terbaca" : "tidak ditemukan") + "</b> · " +
-    "Penyimpanan perangkat: <b class='"+(hasLs?"ok":"no")+"'>" + (hasLs ? "aktif" : "belum ada") + "</b> · " +
+  var hasLs = !!lsGet(LS_KEY);
+  el.innerHTML = "Portable: <b class='"+(filesLoaded.config?"ok":"no")+"'>config.js " + (filesLoaded.config ? "terbaca" : "bawaan") + "</b> · " +
+    "<b class='"+(filesLoaded.soal||filesLoaded.legacy?"ok":"no")+"'>bank-soal/soal.js " + (filesLoaded.soal ? "terbaca" : (filesLoaded.legacy ? "(legacy data.js)" : "kosong")) + "</b> · " +
+    "<b class='"+(filesLoaded.surat||filesLoaded.legacy?"ok":"no")+"'>surat/surat.js " + (filesLoaded.surat ? "terbaca" : (filesLoaded.legacy ? "(legacy data.js)" : "kosong")) + "</b> · " +
+    (dirHandle ? "Folder: <b class='ok'>"+esc(dirHandle.name)+"</b>" : "Folder: <b class='no'>belum terhubung</b>") + " · " +
     "Margin " + esc(cfg.margin.kiri) + " cm";
 }
 
 function saveState(){
-  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e){}
+  if(!lsSet(LS_KEY, JSON.stringify(state))) quotaWarn();
   renderStatus();
 }
 
 function scheduleSave(){
   clearTimeout(saveTimer);
   saveTimer = setTimeout(saveState, 400);
+  if(cfg && cfg.autoSaveFolder && dirHandle){
+    clearTimeout(folderTimer);
+    folderTimer = setTimeout(function(){ saveToFolder(true); }, 1800);
+  }
+}
+
+var dirHandle = null, folderTimer = null, pendingImg = null, quotaAlerted = false;
+
+function lsGet(k){ try { return window.localStorage.getItem(k); } catch(e){ return null; } }
+function lsSet(k,v){ try { window.localStorage.setItem(k,v); return true; } catch(e){ return false; } }
+function quotaWarn(){
+  if(quotaAlerted) return;
+  quotaAlerted = true;
+  alert("Penyimpanan perangkat penuh (kemungkinan karena gambar berukuran besar). Data tetap bisa disimpan lewat tombol 'Simpan ke Folder'.");
+}
+function flash(msg){
+  var t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.display = "block";
+  clearTimeout(flash._t);
+  flash._t = setTimeout(function(){ t.style.display = "none"; }, 2600);
+}
+
+function idbOpen(cb){
+  try {
+    var rq = indexedDB.open("soalkit-fs", 1);
+    rq.onupgradeneeded = function(){ rq.result.createObjectStore("handles"); };
+    rq.onsuccess = function(){ cb(rq.result); };
+    rq.onerror = function(){ cb(null); };
+  } catch(e){ cb(null); }
+}
+function idbSet(k, v){ idbOpen(function(db){ if(!db) return; try { db.transaction("handles","readwrite").objectStore("handles").put(v,k); } catch(e){} }); }
+function idbGet(k, cb){ idbOpen(function(db){ if(!db) return cb(null); try { var rq = db.transaction("handles","readonly").objectStore("handles").get(k); rq.onsuccess = function(){ cb(rq.result || null); }; rq.onerror = function(){ cb(null); }; } catch(e){ cb(null); } }); }
+
+function normalizeData(){
+  var qs = state.soal.questions;
+  for(var i = qs.length - 1; i >= 0; i--){
+    var q = qs[i];
+    if(!q || typeof q !== "object"){ qs.splice(i,1); continue; }
+    if(typeof q.t !== "string") q.t = "";
+    if(typeof q.img !== "string") q.img = "";
+    if(!Array.isArray(q.opts) || q.opts.length < 4){
+      var opts = [];
+      for(var o = 0; o < 4; o++) opts.push(Array.isArray(q.opts) && typeof q.opts[o] === "string" ? q.opts[o] : "");
+      q.opts = opts;
+    }
+    if(!Array.isArray(q.oimgs) || q.oimgs.length < 4){
+      var oi = [];
+      for(var o2 = 0; o2 < 4; o2++) oi.push(Array.isArray(q.oimgs) && typeof q.oimgs[o2] === "string" ? q.oimgs[o2] : "");
+      q.oimgs = oi;
+    }
+  }
+  if(state.soal.optLayout !== "4row") state.soal.optLayout = "2col";
+}
+
+function processImageFile(file, cb){
+  var r = new FileReader();
+  r.onload = function(){
+    var dataUrl = r.result;
+    if(file.size < 400 * 1024 || !window.HTMLCanvasElement){ cb(dataUrl); return; }
+    var img = new Image();
+    img.onload = function(){
+      try {
+        var maxW = 900;
+        var sc = Math.min(1, maxW / img.width);
+        var c = document.createElement("canvas");
+        c.width = Math.max(1, Math.round(img.width * sc));
+        c.height = Math.max(1, Math.round(img.height * sc));
+        var ctx = c.getContext("2d");
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        cb(c.toDataURL("image/jpeg", 0.85));
+      } catch(e){ cb(dataUrl); }
+    };
+    img.onerror = function(){ cb(dataUrl); };
+    img.src = dataUrl;
+  };
+  r.onerror = function(){ alert("Gagal membaca gambar."); };
+  r.readAsDataURL(file);
+}
+
+function soalFileContent(){
+  return "// File data soal SoalKit. Disimpan di: bank-soal/soal.js\n" +
+    "window.SOALKIT_DATA = window.SOALKIT_DATA || {};\n" +
+    "SOALKIT_DATA.soal = " + JSON.stringify(state.soal, null, 2) + ";\n";
+}
+function suratFileContent(){
+  return "// File data surat SoalKit. Disimpan di: surat/surat.js\n" +
+    "window.SOALKIT_DATA = window.SOALKIT_DATA || {};\n" +
+    "SOALKIT_DATA.surat = " + JSON.stringify(state.surat, null, 2) + ";\n";
+}
+function configFileContent(){
+  return "// File konfigurasi SoalKit. Simpan sebagai config.js di folder aplikasi.\n" +
+    "window.SOALKIT_CONFIG = " + JSON.stringify(cfg, null, 2) + ";\n";
+}
+
+function writeIn(root, path, content){
+  var parts = path.split("/");
+  var p = Promise.resolve(root);
+  for(var i = 0; i < parts.length - 1; i++){
+    (function(name){
+      p = p.then(function(dir){ return dir.getDirectoryHandle(name, { create: true }); });
+    })(parts[i]);
+  }
+  return p.then(function(dir){ return dir.getFileHandle(parts[parts.length - 1], { create: true }); })
+    .then(function(fh){ return fh.createWritable(); })
+    .then(function(w){ return w.write(content).then(function(){ return w.close(); }); });
+}
+
+function ensureDir(cb){
+  if(!window.showDirectoryPicker){ cb(null); return; }
+  if(dirHandle){
+    dirHandle.queryPermission({ mode: "readwrite" }).then(function(p){
+      if(p === "granted") return cb(dirHandle);
+      dirHandle.requestPermission({ mode: "readwrite" }).then(function(p2){ cb(p2 === "granted" ? dirHandle : null); }).catch(function(){ cb(null); });
+    }).catch(function(){ cb(null); });
+    return;
+  }
+  window.showDirectoryPicker({ mode: "readwrite" }).then(function(h){
+    dirHandle = h;
+    idbSet("dir", h);
+    updateFolderUI();
+    cb(h);
+  }).catch(function(){ cb(null); });
+}
+
+function saveToFolder(silent){
+  ensureDir(function(h){
+    if(!h){
+      if(!silent){
+        if(!window.showDirectoryPicker) alert("Browser ini tidak mendukung penulisan langsung ke folder. Gunakan Chrome atau Edge, atau pakai 'Ekspor Config' lalu 'Impor' di perangkat lain.");
+        else fallbackDownloadAll();
+      }
+      return;
+    }
+    Promise.all([
+      writeIn(h, "bank-soal/soal.js", soalFileContent()),
+      writeIn(h, "surat/surat.js", suratFileContent()),
+      writeIn(h, "config.js", configFileContent())
+    ]).then(function(){
+      flash("Tersimpan ke folder \"" + h.name + "\": bank-soal/soal.js, surat/surat.js, config.js");
+      renderStatus();
+    }).catch(function(e){
+      if(!silent) alert("Gagal menyimpan ke folder: " + e.message);
+      else flash("Gagal menyimpan ke folder.");
+    });
+  });
+}
+
+function fallbackDownloadAll(){
+  download("soal.js", soalFileContent());
+  setTimeout(function(){ download("surat.js", suratFileContent()); }, 300);
+  flash("File diunduh. Simpan soal.js ke folder bank-soal dan surat.js ke folder surat.");
+}
+
+function updateFolderUI(){
+  var el = document.getElementById("folderName");
+  if(el) el.textContent = dirHandle ? ("Terhubung: " + dirHandle.name) : "";
+  if(cfg) renderStatus();
 }
 
 function scheduleRender(){
@@ -405,6 +589,8 @@ function buildUI(){
   document.getElementById("st-mb").value = c.margin.bawah;
   document.getElementById("st-ml").value = c.margin.kiri;
   document.getElementById("st-mk").value = c.margin.kanan;
+  document.getElementById("st-auto").checked = !!c.autoSaveFolder;
+  document.getElementById("so-layout").value = s.optLayout || "2col";
   renderKopPreview();
 }
 
@@ -420,11 +606,17 @@ function renderQList(){
       '<button class="btn mini" data-act="down" title="Turun">↓</button>' +
       '<button class="btn mini" data-act="dup" title="Duplikat">⧉</button>' +
       '<button class="btn mini" data-act="del" title="Hapus">✕</button></span></div>' +
-      '<textarea class="f-q" rows="2">'+esc(q.t)+'</textarea>';
+      '<textarea class="f-q" rows="2">'+esc(q.t)+'</textarea>' +
+      '<div class="qimgbar"><button class="btn mini" data-act="imgq" title="Tambah gambar pada soal">🖼 Gambar Soal</button>' +
+      (q.img ? '<img src="'+q.img+'" alt=""><button class="btn mini" data-act="imgqdel" title="Hapus gambar soal">✕</button>' : '') +
+      '</div>';
     for(var o = 0; o < 4; o++){
       html += '<div class="optline"><span class="abc">'+LETTERS[o]+'</span>' +
         '<input type="radio" name="key'+i+'" data-o="'+o+'"'+(q.key===o?" checked":"")+' title="Tandai sebagai kunci">' +
-        '<input class="f-opt" data-o="'+o+'" value="'+esc(q.opts[o])+'"></div>';
+        '<input class="f-opt" data-o="'+o+'" value="'+esc(q.opts[o])+'">' +
+        '<button class="btn mini" data-act="imgopt" data-o="'+o+'" title="Gambar untuk pilihan '+LETTERS[o]+'">🖼</button>' +
+        (q.oimgs && q.oimgs[o] ? '<img class="optthumb" src="'+q.oimgs[o]+'" alt=""><button class="btn mini" data-act="optimgdel" data-o="'+o+'" title="Hapus gambar pilihan">✕</button>' : '') +
+        '</div>';
     }
     html += '</div>';
   }
@@ -474,9 +666,24 @@ function soalHeaderBlock(){
 }
 
 function questionBlock(q, i){
+  var oi = (q.oimgs && q.oimgs.length >= 4) ? q.oimgs : ["", "", "", ""];
   var h = '<div class="q-text"><b>'+(i+1)+'.</b> '+esc(q.t)+'</div>';
-  h += '<table class="opts"><tr><td>A. '+esc(q.opts[0])+'</td><td>B. '+esc(q.opts[1])+'</td></tr>' +
-       '<tr><td>C. '+esc(q.opts[2])+'</td><td>D. '+esc(q.opts[3])+'</td></tr></table>';
+  if(q.img) h += '<img class="q-img" src="'+q.img+'" alt="">';
+  var one = state.soal.optLayout === "4row";
+  function cell(letter, text, img){
+    return (one ? '<tr><td>' : '<td>') + letter + '. ' + esc(text) +
+      (img ? '<img class="opt-img" src="'+img+'" alt="">' : '') +
+      (one ? '</td></tr>' : '</td>');
+  }
+  h += '<table class="opts'+(one?' one':'')+'">';
+  if(one){
+    h += cell("A", q.opts[0], oi[0]) + cell("B", q.opts[1], oi[1]) +
+         cell("C", q.opts[2], oi[2]) + cell("D", q.opts[3], oi[3]);
+  } else {
+    h += '<tr>' + cell("A", q.opts[0], oi[0]) + cell("B", q.opts[1], oi[1]) + '</tr>' +
+         '<tr>' + cell("C", q.opts[2], oi[2]) + cell("D", q.opts[3], oi[3]) + '</tr>';
+  }
+  h += '</table>';
   return makeBlock(h);
 }
 
@@ -577,8 +784,9 @@ function suratBlocks(){
 function paginate(blocks, mount){
   var m = cfg.margin;
   var pageW = 210 * MM, pageH = 297 * MM;
-  var padT = (Number(m.atas)||0) * MM, padB = (Number(m.bawah)||0) * MM;
-  var padL = (Number(m.kiri)||0) * MM, padR = (Number(m.kanan)||0) * MM;
+  var CM = 37.795275591;
+  var padT = (Number(m.atas)||0) * CM, padB = (Number(m.bawah)||0) * CM;
+  var padL = (Number(m.kiri)||0) * CM, padR = (Number(m.kanan)||0) * CM;
   var innerW = pageW - padL - padR;
   var innerH = (pageH - padT - padB) * 0.985;
 
@@ -631,16 +839,13 @@ function paginate(blocks, mount){
 }
 
 function renderActive(){
-  if(activeTab === "soal"){
-    var s = state.soal;
-    var blocks = [soalHeaderBlock()];
-    for(var i = 0; i < s.questions.length; i++) blocks.push(questionBlock(s.questions[i], i));
-    if(s.lembarJawaban && s.questions.length) blocks.push(answerSheetBlock());
-    if(s.kunci && s.questions.length) blocks.push(kunciBlock());
-    paginate(blocks, document.getElementById("pagesSoal"));
-  } else if(activeTab === "surat"){
-    paginate(suratBlocks(), document.getElementById("pagesSurat"));
-  }
+  var s = state.soal;
+  var blocks = [soalHeaderBlock()];
+  for(var i = 0; i < s.questions.length; i++) blocks.push(questionBlock(s.questions[i], i));
+  if(s.lembarJawaban && s.questions.length) blocks.push(answerSheetBlock());
+  if(s.kunci && s.questions.length) blocks.push(kunciBlock());
+  paginate(blocks, document.getElementById("pagesSoal"));
+  paginate(suratBlocks(), document.getElementById("pagesSurat"));
 }
 
 function fillPrintMount(){
@@ -674,18 +879,8 @@ function download(name, content){
   setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 }
 
-function exportData(){
-  var js = "// File data SoalKit. Simpan sebagai data/data.js di folder aplikasi.\n" +
-    "window.SOALKIT_DATA = window.SOALKIT_DATA || {};\n" +
-    "SOALKIT_DATA.soal = " + JSON.stringify(state.soal, null, 2) + ";\n" +
-    "SOALKIT_DATA.surat = " + JSON.stringify(state.surat, null, 2) + ";\n";
-  download("data.js", js);
-}
-
 function exportConfig(){
-  var js = "// File konfigurasi SoalKit. Simpan sebagai config.js di folder aplikasi.\n" +
-    "window.SOALKIT_CONFIG = " + JSON.stringify(cfg, null, 2) + ";\n";
-  download("config.js", js);
+  download("config.js", configFileContent());
 }
 
 function importText(text){
@@ -750,10 +945,15 @@ function bindEvents(){
   });
 
   document.getElementById("btnPrint").addEventListener("click", doPrint);
-  document.getElementById("btnEksporData").addEventListener("click", exportData);
+  document.getElementById("btnSimpanFolder").addEventListener("click", function(){ saveToFolder(false); });
   document.getElementById("btnEksporConfig").addEventListener("click", exportConfig);
   document.getElementById("st-saveconfig").addEventListener("click", exportConfig);
-  document.getElementById("st-savedata").addEventListener("click", exportData);
+  document.getElementById("st-simpan-sekarang").addEventListener("click", function(){ saveToFolder(false); });
+  document.getElementById("btnPilihFolder").addEventListener("click", function(){
+    if(!window.showDirectoryPicker){ alert("Browser ini tidak mendukung pemilihan folder. Gunakan Chrome/Edge terbaru."); return; }
+    ensureDir(function(h){ if(h) flash("Folder terhubung: " + h.name); });
+  });
+  bindField("st-auto", function(t){ cfg.autoSaveFolder = t.checked; });
 
   document.getElementById("btnImpor").addEventListener("click", function(){
     document.getElementById("fileImpor").click();
@@ -771,7 +971,7 @@ function bindEvents(){
   document.getElementById("btnZoomOut").addEventListener("click", function(){ setZoom(zoom - 0.1); });
 
   document.getElementById("btnAddQ").addEventListener("click", function(){
-    state.soal.questions.push({ t: "", opts: ["", "", "", ""], key: null });
+    state.soal.questions.push({ t: "", opts: ["", "", "", ""], oimgs: ["", "", "", ""], img: "", key: null });
     renderQList(); renderActive(); scheduleSave();
     var cards = document.querySelectorAll(".qcard");
     if(cards.length) cards[cards.length-1].querySelector(".f-q").focus();
@@ -807,6 +1007,10 @@ function bindEvents(){
     var i = parseInt(card.dataset.i, 10);
     var qs = state.soal.questions;
     var act = btn.dataset.act;
+    if(act === "imgq"){ pendingImg = { kind: "q", i: i }; document.getElementById("imgFile").click(); return; }
+    if(act === "imgqdel"){ qs[i].img = ""; renderQList(); renderActive(); scheduleSave(); return; }
+    if(act === "imgopt"){ pendingImg = { kind: "opt", i: i, o: parseInt(btn.dataset.o, 10) }; document.getElementById("imgFile").click(); return; }
+    if(act === "optimgdel"){ qs[i].oimgs[parseInt(btn.dataset.o, 10)] = ""; renderQList(); renderActive(); scheduleSave(); return; }
     if(act === "del"){
       if(confirm("Hapus soal " + (i+1) + "?")) qs.splice(i, 1);
     } else if(act === "dup"){
@@ -838,6 +1042,7 @@ function bindEvents(){
   bindField("so-waktu", function(t){ state.soal.waktu = t.value; });
   bindField("so-guru", function(t){ state.soal.guru = t.value; });
   bindField("so-petunjuk", function(t){ state.soal.petunjuk = t.value; });
+  bindField("so-layout", function(t){ state.soal.optLayout = t.value; });
   bindField("so-kop", function(t){ state.soal.pakaiKop = t.checked; });
   bindField("so-lj", function(t){ state.soal.lembarJawaban = t.checked; });
   bindField("so-kunci", function(t){ state.soal.kunci = t.checked; });
@@ -866,16 +1071,29 @@ function bindEvents(){
   bindField("st-ml", function(t){ cfg.margin.kiri = Number(t.value); });
   bindField("st-mk", function(t){ cfg.margin.kanan = Number(t.value); });
 
-  document.getElementById("st-kopfile").addEventListener("change", function(e){
+  document.getElementById("st-kopbtn").addEventListener("click", function(){
+    pendingImg = { kind: "kop" };
+    document.getElementById("imgFile").click();
+  });
+  document.getElementById("imgFile").addEventListener("change", function(e){
     var f = e.target.files[0];
-    if(!f) return;
-    var r = new FileReader();
-    r.onload = function(){
-      cfg.kopImage = r.result;
-      renderKopPreview(); renderActive(); scheduleSave();
-      alert("Kop dimuat. Jangan lupa 'Unduh config.js' agar kop ikut tersimpan di folder aplikasi.");
-    };
-    r.readAsDataURL(f);
+    if(!f || !pendingImg){ e.target.value = ""; return; }
+    processImageFile(f, function(dataUrl){
+      if(pendingImg.kind === "kop"){
+        cfg.kopImage = dataUrl;
+        renderKopPreview();
+        flash("Kop dimuat. Klik 'Simpan ke Folder' agar ikut tersimpan di config.js.");
+      } else if(pendingImg.kind === "q"){
+        state.soal.questions[pendingImg.i].img = dataUrl;
+        renderQList();
+      } else if(pendingImg.kind === "opt"){
+        state.soal.questions[pendingImg.i].oimgs[pendingImg.o] = dataUrl;
+        renderQList();
+      }
+      renderActive();
+      scheduleSave();
+      pendingImg = null;
+    });
     e.target.value = "";
   });
   document.getElementById("st-kophapus").addEventListener("click", function(){
@@ -892,14 +1110,38 @@ function setZoom(z){
   renderActive();
 }
 
+function restoreFolder(){
+  if(!window.showDirectoryPicker) return;
+  idbGet("dir", function(h){
+    if(!h) return;
+    dirHandle = h;
+    h.queryPermission({ mode: "readwrite" }).then(function(){ updateFolderUI(); }).catch(function(){ updateFolderUI(); });
+  });
+}
+
 loadScript("config.js", function(ok){
   filesLoaded.config = ok;
   if(ok) fileConfig = window.SOALKIT_CONFIG || null;
-  var dataPath = (fileConfig && fileConfig.dataFile) ? fileConfig.dataFile : "data/data.js";
-  loadScript(dataPath, function(ok2){
-    filesLoaded.data = ok2;
-    if(ok2) fileData = window.SOALKIT_DATA || null;
-    init();
+  var soalPath = (fileConfig && fileConfig.soalFile) || "bank-soal/soal.js";
+  var suratPath = (fileConfig && fileConfig.suratFile) || "surat/surat.js";
+  var legacyPath = (fileConfig && fileConfig.dataFile) || "data/data.js";
+  loadScript(soalPath, function(ok1){
+    filesLoaded.soal = ok1;
+    loadScript(suratPath, function(ok2){
+      filesLoaded.surat = ok2;
+      if(!ok1 && !ok2){
+        loadScript(legacyPath, function(ok3){
+          filesLoaded.legacy = ok3;
+          if(ok3) fileData = window.SOALKIT_DATA || null;
+          init();
+          restoreFolder();
+        });
+      } else {
+        fileData = window.SOALKIT_DATA || null;
+        init();
+        restoreFolder();
+      }
+    });
   });
 });
 })();

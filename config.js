@@ -4,7 +4,7 @@
 //  Bisa diedit langsung dengan Notepad, atau lewat menu
 //  Pengaturan di aplikasi lalu klik "Unduh config.js".
 //  Saat memindahkan aplikasi ke perangkat lain, cukup salin
-//  seluruh folder ini (termasuk file config.js dan folder data).
+//  seluruh folder ini (termasuk config.js, bank-soal, surat).
 // ============================================================
 
 window.SOALKIT_CONFIG = {
@@ -13,5 +13,8 @@ window.SOALKIT_CONFIG = {
   "kota": "Sukamaju",
   "kopImage": "",
   "margin": { "atas": 2, "bawah": 2, "kiri": 2, "kanan": 2 },
+  "autoSaveFolder": false,
+  "soalFile": "bank-soal/soal.js",
+  "suratFile": "surat/surat.js",
   "dataFile": "data/data.js"
 };
